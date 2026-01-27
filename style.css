@@ -1,103 +1,53 @@
-/* ==========================
-   RESET BÁSICO
-========================== */
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
-/* ==========================
-   BASE
-========================== */
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Arial, sans-serif;
   background: #f4f4f4;
   padding: 20px;
-  color: #111827;
 }
 
-h1, h2 {
+h1 {
   margin-bottom: 10px;
 }
 
-/* ==========================
-   INPUTS E BOTÕES
-========================== */
 input {
-  padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 6px;
+  margin-right: 4px;
 }
 
 button {
   padding: 6px 10px;
+  cursor: pointer;
+  margin-left: 4px;
   border: none;
   border-radius: 4px;
-  cursor: pointer;
   background: #2563eb;
   color: white;
-  font-size: 14px;
 }
 
 button:hover {
   opacity: 0.9;
 }
 
-button.danger {
+.danger {
   background: #b91c1c;
 }
 
-button.secondary {
-  background: #6b7280;
-}
-
-/* ==========================
-   SEÇÕES
-========================== */
 .box {
-  background: #ffffff;
-  padding: 15px;
-  margin-bottom: 15px;
-  border-radius: 6px;
+  margin-bottom: 10px;
 }
 
-/* ==========================
-   MAPA
-========================== */
-#mapa {
-  margin-top: 20px;
-}
-
-/* ==========================
-   ÁREA
-========================== */
 .area {
-  background: #ffffff;
-  padding: 15px;
+  background: #fff;
+  padding: 12px;
   margin-bottom: 15px;
   border-radius: 6px;
   border-left: 5px solid #2563eb;
 }
 
-.area-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-/* ==========================
-   RUA
-========================== */
-.rua {
-  margin-left: 10px;
-  margin-top: 10px;
-  padding: 10px;
-  background: #f9fafb;
-  border-radius: 6px;
-}
-
+.area-header,
 .rua-header {
   display: flex;
   justify-content: space-between;
@@ -105,62 +55,25 @@ button.secondary {
   margin-bottom: 8px;
 }
 
-/* ==========================
-   ENDEREÇOS VISUAIS
-========================== */
+.rua {
+  background: #f9fafb;
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: 10px;
+  margin-left: 10px;
+}
+
 .enderecos {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+  margin-top: 6px;
 }
 
 .endereco {
-  width: 32px;
-  height: 32px;
-  border: 1px solid #9ca3af;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #999;
   border-radius: 4px;
   background: #e5e7eb;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
-}
-
-.endereco:hover {
-  background: #c7d2fe;
-  transform: scale(1.05);
-}
-
-/* ==========================
-   ESTADOS FUTUROS (PRONTO)
-========================== */
-.endereco.ocupado {
-  background: #86efac;
-  border-color: #166534;
-}
-
-.endereco.destaque {
-  outline: 3px solid #ef4444;
-  animation: piscar 1s infinite;
-}
-
-/* ==========================
-   ANIMAÇÃO
-========================== */
-@keyframes piscar {
-  0% { outline-color: #ef4444; }
-  50% { outline-color: #facc15; }
-  100% { outline-color: #ef4444; }
-}
-
-/* ==========================
-   RESPONSIVO
-========================== */
-@media (max-width: 600px) {
-  .enderecos {
-    gap: 4px;
-  }
-
-  .endereco {
-    width: 28px;
-    height: 28px;
-  }
 }
