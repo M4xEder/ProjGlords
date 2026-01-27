@@ -2,12 +2,64 @@
 // ESTADO
 // ==========================
 let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
+let lotes = JSON.parse(localStorage.getItem('lotes')) || {};
 
 // ==========================
 // SALVAR
 // ==========================
 function salvar() {
   localStorage.setItem('mapa', JSON.stringify(mapa));
+  localStorage.setItem('lotes', JSON.stringify(lotes));
+}
+
+// ==========================
+// CADASTRAR LOTE
+// ==========================
+function cadastrarLote() {
+  const nome = document.getElementById('loteNome').value.trim();
+  const qtd = Number(document.getElementById('loteQtd').value);
+
+  if (!nome || qtd <= 0) {
+    alert('Informe nome do lote e quantidade válida');
+    return;
+  }
+
+  if (lotes[nome]) {
+    alert('Este lote já existe');
+    return;
+  }
+
+  lotes[nome] = {
+    total: qtd
+  };
+
+  document.getElementById('loteNome').value = '';
+  document.getElementById('loteQtd').value = '';
+
+  salvar();
+  renderLotes();
+}
+
+// ==========================
+// RENDER LOTES
+// ==========================
+function renderLotes() {
+  const div = document.getElementById('listaLotes');
+  div.innerHTML = '';
+
+  const nomes = Object.keys(lotes);
+
+  if (nomes.length === 0) {
+    div.innerHTML = '<em>Nenhum lote cadastrado</em>';
+    return;
+  }
+
+  nomes.forEach(nome => {
+    const item = document.createElement('div');
+    item.className = 'lote-item';
+    item.innerHTML = `<strong>${nome}</strong> — ${lotes[nome].total} gaylords`;
+    div.appendChild(item);
+  });
 }
 
 // ==========================
@@ -15,7 +67,6 @@ function salvar() {
 // ==========================
 function criarArea() {
   const nome = document.getElementById('areaNome').value.trim();
-
   if (!nome) {
     alert('Informe o nome da área');
     return;
@@ -28,7 +79,7 @@ function criarArea() {
 
   document.getElementById('areaNome').value = '';
   salvar();
-  render();
+  renderMapa();
 }
 
 // ==========================
@@ -39,7 +90,7 @@ function excluirArea(areaIndex) {
 
   mapa.splice(areaIndex, 1);
   salvar();
-  render();
+  renderMapa();
 }
 
 // ==========================
@@ -58,7 +109,7 @@ function criarRua(areaIndex) {
   });
 
   salvar();
-  render();
+  renderMapa();
 }
 
 // ==========================
@@ -69,13 +120,13 @@ function excluirRua(areaIndex, ruaIndex) {
 
   mapa[areaIndex].ruas.splice(ruaIndex, 1);
   salvar();
-  render();
+  renderMapa();
 }
 
 // ==========================
-// RENDER
+// RENDER MAPA
 // ==========================
-function render() {
+function renderMapa() {
   const mapaDiv = document.getElementById('mapa');
   mapaDiv.innerHTML = '';
 
@@ -124,4 +175,5 @@ function render() {
 // ==========================
 // INIT
 // ==========================
-render();
+renderLotes();
+renderMapa();
