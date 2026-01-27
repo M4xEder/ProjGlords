@@ -1,9 +1,10 @@
+// ================= ESTADO =================
 let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
 let lotes = JSON.parse(localStorage.getItem('lotes')) || {};
 
 let enderecoAtual = null;
 
-// ================= SALVAR =================
+// ================= UTIL =================
 function salvar() {
   localStorage.setItem('mapa', JSON.stringify(mapa));
   localStorage.setItem('lotes', JSON.stringify(lotes));
@@ -14,12 +15,20 @@ function cadastrarLote() {
   const nome = loteNome.value.trim();
   const qtd = Number(loteQtd.value);
 
-  if (!nome || qtd <= 0) return alert('Dados inválidos');
+  if (!nome || qtd <= 0) {
+    alert('Informe nome e quantidade');
+    return;
+  }
 
-  if (lotes[nome]) return alert('Lote já existe');
+  if (lotes[nome]) {
+    alert('Lote já existe');
+    return;
+  }
 
   lotes[nome] = { total: qtd };
-  loteNome.value = loteQtd.value = '';
+
+  loteNome.value = '';
+  loteQtd.value = '';
 
   salvar();
   renderLotes();
@@ -27,32 +36,22 @@ function cadastrarLote() {
 
 function renderLotes() {
   listaLotes.innerHTML = '';
-  Object.keys(lotes).forEach(l => {
-    listaLotes.innerHTML += `<div>${l} — ${lotes[l].total}</div>`;
+  Object.entries(lotes).forEach(([nome, data]) => {
+    listaLotes.innerHTML += `<div>${nome} — ${data.total}</div>`;
   });
 }
 
-// ================= ÁREA / RUA =================
+// ================= ÁREA =================
 function criarArea() {
   const nome = areaNome.value.trim();
   if (!nome) return;
 
-  mapa.push({ nome, ruas: [] });
-  areaNome.value = '';
-  salvar();
-  renderMapa();
-}
-
-function criarRua(a) {
-  const nome = prompt('Nome da rua');
-  const qtd = Number(prompt('Qtd de endereços'));
-  if (!nome || qtd <= 0) return;
-
-  mapa[a].ruas.push({
+  mapa.push({
     nome,
-    enderecos: Array(qtd).fill(null)
+    ruas: []
   });
 
+  areaNome.value = '';
   salvar();
   renderMapa();
 }
@@ -60,6 +59,22 @@ function criarRua(a) {
 function excluirArea(a) {
   if (!confirm('Excluir área?')) return;
   mapa.splice(a, 1);
+  salvar();
+  renderMapa();
+}
+
+// ================= RUA =================
+function criarRua(a) {
+  const nome = prompt('Nome da rua');
+  const qtd = Number(prompt('Quantidade de endereços'));
+
+  if (!nome || qtd <= 0) return;
+
+  mapa[a].ruas.push({
+    nome,
+    enderecos: Array(qtd).fill(null)
+  });
+
   salvar();
   renderMapa();
 }
@@ -93,9 +108,13 @@ function salvarEndereco() {
   const lote = modalLote.value;
   const qtd = Number(modalQtd.value);
 
-  if (!lote || qtd <= 0) return alert('Dados inválidos');
+  if (!lote || qtd <= 0) {
+    alert('Dados inválidos');
+    return;
+  }
 
   const { a, r, e } = enderecoAtual;
+
   mapa[a].ruas[r].enderecos[e] = { lote, qtd };
 
   salvar();
@@ -103,8 +122,9 @@ function salvarEndereco() {
   renderMapa();
 }
 
-// ================= RENDER MAPA =================
+// ================= RENDER =================
 function renderMapa() {
+  const mapaDiv = document.getElementById('mapa');
   mapaDiv.innerHTML = '';
 
   mapa.forEach((area, a) => {
