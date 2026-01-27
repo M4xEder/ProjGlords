@@ -4,38 +4,50 @@
   <meta charset="UTF-8">
   <title>Mapa de Armazenamento</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <h1>Mapa de Armazenamento</h1>
 
-<!-- CADASTRO DE LOTE -->
+<!-- LOTES -->
 <div class="box">
   <h2>Cadastrar Lote</h2>
   <input id="loteNome" placeholder="Nome do lote">
   <input id="loteQtd" type="number" min="1" placeholder="Qtd. de gaylords">
-  <button onclick="cadastrarLote()">Cadastrar Lote</button>
+  <button onclick="cadastrarLote()">Cadastrar</button>
 </div>
 
-<!-- LISTA DE LOTES -->
 <div class="box">
-  <h2>Lotes Cadastrados</h2>
+  <h2>Lotes</h2>
   <div id="listaLotes"></div>
 </div>
 
 <hr>
 
-<!-- CADASTRO DE ÁREA -->
+<!-- ÁREA -->
 <div class="box">
   <h2>Criar Área</h2>
   <input id="areaNome" placeholder="Nome da área">
   <button onclick="criarArea()">Criar Área</button>
 </div>
 
-<!-- MAPA -->
 <div id="mapa"></div>
+
+<!-- MODAL ENDEREÇAR -->
+<div id="modal" class="modal hidden">
+  <div class="modal-content">
+    <h3>Endereçar Gaylord</h3>
+
+    <select id="modalLote"></select>
+    <input id="modalQtd" type="number" min="1" placeholder="Quantidade">
+
+    <div class="acoes">
+      <button onclick="salvarEndereco()">Salvar</button>
+      <button class="danger" onclick="fecharModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
 
 <script src="script.js"></script>
 </body>
