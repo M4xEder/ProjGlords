@@ -1,109 +1,54 @@
-// ==========================
-// ESTADO
-// ==========================
 let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
 let lotes = JSON.parse(localStorage.getItem('lotes')) || {};
 
-// ==========================
-// SALVAR
-// ==========================
+let enderecoAtual = null;
+
+// ================= SALVAR =================
 function salvar() {
   localStorage.setItem('mapa', JSON.stringify(mapa));
   localStorage.setItem('lotes', JSON.stringify(lotes));
 }
 
-// ==========================
-// CADASTRAR LOTE
-// ==========================
+// ================= LOTES =================
 function cadastrarLote() {
-  const nome = document.getElementById('loteNome').value.trim();
-  const qtd = Number(document.getElementById('loteQtd').value);
+  const nome = loteNome.value.trim();
+  const qtd = Number(loteQtd.value);
 
-  if (!nome || qtd <= 0) {
-    alert('Informe nome do lote e quantidade válida');
-    return;
-  }
+  if (!nome || qtd <= 0) return alert('Dados inválidos');
 
-  if (lotes[nome]) {
-    alert('Este lote já existe');
-    return;
-  }
+  if (lotes[nome]) return alert('Lote já existe');
 
-  lotes[nome] = {
-    total: qtd
-  };
-
-  document.getElementById('loteNome').value = '';
-  document.getElementById('loteQtd').value = '';
+  lotes[nome] = { total: qtd };
+  loteNome.value = loteQtd.value = '';
 
   salvar();
   renderLotes();
 }
 
-// ==========================
-// RENDER LOTES
-// ==========================
 function renderLotes() {
-  const div = document.getElementById('listaLotes');
-  div.innerHTML = '';
-
-  const nomes = Object.keys(lotes);
-
-  if (nomes.length === 0) {
-    div.innerHTML = '<em>Nenhum lote cadastrado</em>';
-    return;
-  }
-
-  nomes.forEach(nome => {
-    const item = document.createElement('div');
-    item.className = 'lote-item';
-    item.innerHTML = `<strong>${nome}</strong> — ${lotes[nome].total} gaylords`;
-    div.appendChild(item);
+  listaLotes.innerHTML = '';
+  Object.keys(lotes).forEach(l => {
+    listaLotes.innerHTML += `<div>${l} — ${lotes[l].total}</div>`;
   });
 }
 
-// ==========================
-// CRIAR ÁREA
-// ==========================
+// ================= ÁREA / RUA =================
 function criarArea() {
-  const nome = document.getElementById('areaNome').value.trim();
-  if (!nome) {
-    alert('Informe o nome da área');
-    return;
-  }
-
-  mapa.push({
-    nome,
-    ruas: []
-  });
-
-  document.getElementById('areaNome').value = '';
-  salvar();
-  renderMapa();
-}
-
-// ==========================
-// EXCLUIR ÁREA
-// ==========================
-function excluirArea(areaIndex) {
-  if (!confirm('Excluir esta área?')) return;
-
-  mapa.splice(areaIndex, 1);
-  salvar();
-  renderMapa();
-}
-
-// ==========================
-// CRIAR RUA
-// ==========================
-function criarRua(areaIndex) {
-  const nome = prompt('Nome da rua');
+  const nome = areaNome.value.trim();
   if (!nome) return;
 
-  const qtd = Number(prompt('Quantidade de endereços'));
-  if (!qtd || qtd <= 0) return;
+  mapa.push({ nome, ruas: [] });
+  areaNome.value = '';
+  salvar();
+  renderMapa();
+}
 
-  mapa[areaIndex].ruas.push({
+function criarRua(a) {
+  const nome = prompt('Nome da rua');
+  const qtd = Number(prompt('Qtd de endereços'));
+  if (!nome || qtd <= 0) return;
+
+  mapa[a].ruas.push({
     nome,
     enderecos: Array(qtd).fill(null)
   });
@@ -112,59 +57,94 @@ function criarRua(areaIndex) {
   renderMapa();
 }
 
-// ==========================
-// EXCLUIR RUA
-// ==========================
-function excluirRua(areaIndex, ruaIndex) {
-  if (!confirm('Excluir esta rua?')) return;
-
-  mapa[areaIndex].ruas.splice(ruaIndex, 1);
+function excluirArea(a) {
+  if (!confirm('Excluir área?')) return;
+  mapa.splice(a, 1);
   salvar();
   renderMapa();
 }
 
-// ==========================
-// RENDER MAPA
-// ==========================
+function excluirRua(a, r) {
+  if (!confirm('Excluir rua?')) return;
+  mapa[a].ruas.splice(r, 1);
+  salvar();
+  renderMapa();
+}
+
+// ================= MODAL =================
+function abrirModal(a, r, e) {
+  enderecoAtual = { a, r, e };
+
+  modalLote.innerHTML = '<option value="">Selecione o lote</option>';
+  Object.keys(lotes).forEach(l => {
+    modalLote.innerHTML += `<option value="${l}">${l}</option>`;
+  });
+
+  modalQtd.value = '';
+  modal.classList.remove('hidden');
+}
+
+function fecharModal() {
+  modal.classList.add('hidden');
+  enderecoAtual = null;
+}
+
+function salvarEndereco() {
+  const lote = modalLote.value;
+  const qtd = Number(modalQtd.value);
+
+  if (!lote || qtd <= 0) return alert('Dados inválidos');
+
+  const { a, r, e } = enderecoAtual;
+  mapa[a].ruas[r].enderecos[e] = { lote, qtd };
+
+  salvar();
+  fecharModal();
+  renderMapa();
+}
+
+// ================= RENDER MAPA =================
 function renderMapa() {
-  const mapaDiv = document.getElementById('mapa');
   mapaDiv.innerHTML = '';
 
-  mapa.forEach((area, aIndex) => {
+  mapa.forEach((area, a) => {
     const areaDiv = document.createElement('div');
     areaDiv.className = 'area';
 
     areaDiv.innerHTML = `
       <div class="area-header">
-        <strong>Área: ${area.nome}</strong>
+        <strong>${area.nome}</strong>
         <div>
-          <button onclick="criarRua(${aIndex})">+ Rua</button>
-          <button class="danger" onclick="excluirArea(${aIndex})">Excluir Área</button>
+          <button onclick="criarRua(${a})">+ Rua</button>
+          <button class="danger" onclick="excluirArea(${a})">Excluir</button>
         </div>
       </div>
     `;
 
-    area.ruas.forEach((rua, rIndex) => {
+    area.ruas.forEach((rua, r) => {
       const ruaDiv = document.createElement('div');
       ruaDiv.className = 'rua';
 
       ruaDiv.innerHTML = `
         <div class="rua-header">
-          <strong>Rua: ${rua.nome}</strong>
-          <button class="danger" onclick="excluirRua(${aIndex}, ${rIndex})">Excluir Rua</button>
+          <strong>${rua.nome}</strong>
+          <button class="danger" onclick="excluirRua(${a},${r})">Excluir</button>
         </div>
       `;
 
-      const enderecosDiv = document.createElement('div');
-      enderecosDiv.className = 'enderecos';
+      const endDiv = document.createElement('div');
+      endDiv.className = 'enderecos';
 
-      rua.enderecos.forEach(() => {
-        const e = document.createElement('div');
-        e.className = 'endereco';
-        enderecosDiv.appendChild(e);
+      rua.enderecos.forEach((end, e) => {
+        const d = document.createElement('div');
+        d.className = 'endereco';
+        if (end) d.classList.add('ocupado');
+
+        d.onclick = () => abrirModal(a, r, e);
+        endDiv.appendChild(d);
       });
 
-      ruaDiv.appendChild(enderecosDiv);
+      ruaDiv.appendChild(endDiv);
       areaDiv.appendChild(ruaDiv);
     });
 
@@ -172,8 +152,6 @@ function renderMapa() {
   });
 }
 
-// ==========================
-// INIT
-// ==========================
+// ================= INIT =================
 renderLotes();
 renderMapa();
