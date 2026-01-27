@@ -95,7 +95,9 @@ function abrirModal(a, r, e) {
     modalLote.innerHTML += `<option value="${l}">${l}</option>`;
   });
 
-  modalQtd.value = '';
+  modalRz.value = '';
+  modalVolume.value = '';
+
   modal.classList.remove('hidden');
 }
 
@@ -106,16 +108,26 @@ function fecharModal() {
 
 function salvarEndereco() {
   const lote = modalLote.value;
-  const qtd = Number(modalQtd.value);
+  const rz = modalRz.value.trim();
+  const volume = modalVolume.value.trim();
 
-  if (!lote || qtd <= 0) {
-    alert('Dados inválidos');
+  if (!lote) {
+    alert('Selecione um lote');
+    return;
+  }
+
+  if (!rz) {
+    alert('RZ é obrigatório');
     return;
   }
 
   const { a, r, e } = enderecoAtual;
 
-  mapa[a].ruas[r].enderecos[e] = { lote, qtd };
+  mapa[a].ruas[r].enderecos[e] = {
+    lote,
+    rz,
+    volume: volume || null
+  };
 
   salvar();
   fecharModal();
@@ -158,7 +170,11 @@ function renderMapa() {
       rua.enderecos.forEach((end, e) => {
         const d = document.createElement('div');
         d.className = 'endereco';
-        if (end) d.classList.add('ocupado');
+
+        if (end) {
+          d.classList.add('ocupado');
+          d.title = `Lote: ${end.lote}\nRZ: ${end.rz}\nVolume: ${end.volume || '-'}`;
+        }
 
         d.onclick = () => abrirModal(a, r, e);
         endDiv.appendChild(d);
