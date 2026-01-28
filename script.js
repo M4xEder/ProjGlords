@@ -1,19 +1,32 @@
-// DOM
-const mapaDiv = document.getElementById('mapa');
-const modal = document.getElementById('modal');
-const modalRz = document.getElementById('modalRz');
-const modalVolume = document.getElementById('modalVolume');
-
-// ESTADO
+// ================= ESTADO =================
 let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
+let lotes = JSON.parse(localStorage.getItem('lotes')) || {};
 let posicaoAtual = null;
 
-// SALVAR
+// ================= SALVAR =================
 function salvar() {
   localStorage.setItem('mapa', JSON.stringify(mapa));
+  localStorage.setItem('lotes', JSON.stringify(lotes));
 }
 
-// ÁREA
+// ================= LOTE =================
+function criarLote() {
+  const nome = loteNome.value.trim();
+  const qtd = Number(loteQtd.value);
+
+  if (!nome || qtd <= 0) {
+    alert('Informe nome e quantidade');
+    return;
+  }
+
+  lotes[nome] = { total: qtd };
+  loteNome.value = '';
+  loteQtd.value = '';
+  salvar();
+  alert('Lote cadastrado');
+}
+
+// ================= ÁREA =================
 function criarArea() {
   const nome = areaNome.value.trim();
   if (!nome) return alert('Nome da área obrigatório');
@@ -24,7 +37,7 @@ function criarArea() {
   renderMapa();
 }
 
-// RUA
+// ================= RUA =================
 function criarRua(a) {
   const nome = prompt('Nome da rua');
   const qtd = Number(prompt('Quantidade de endereços'));
@@ -40,14 +53,13 @@ function criarRua(a) {
   renderMapa();
 }
 
-// MAPA
+// ================= MAPA =================
 function renderMapa() {
   mapaDiv.innerHTML = '';
 
   mapa.forEach((area, a) => {
     const areaDiv = document.createElement('div');
     areaDiv.className = 'area';
-
     areaDiv.innerHTML = `<strong>${area.nome}</strong>`;
 
     area.ruas.forEach((rua, r) => {
@@ -61,7 +73,6 @@ function renderMapa() {
       rua.posicoes.forEach((pos, p) => {
         const d = document.createElement('div');
         d.className = 'posicao';
-
         if (pos) d.classList.add('ocupada');
 
         d.onclick = () => abrirModal(a, r, p);
@@ -81,13 +92,23 @@ function renderMapa() {
   });
 }
 
-// MODAL
+// ================= MODAL =================
 function abrirModal(a, r, p) {
   posicaoAtual = { a, r, p };
   const pos = mapa[a].ruas[r].posicoes[p];
 
+  modalLote.innerHTML = '<option value="">Selecione</option>';
+  Object.keys(lotes).forEach(l => {
+    const opt = document.createElement('option');
+    opt.value = l;
+    opt.textContent = l;
+    modalLote.appendChild(opt);
+  });
+
+  modalLote.value = pos?.lote || '';
   modalRz.value = pos?.rz || '';
   modalVolume.value = pos?.volume || '';
+
   modal.classList.remove('hidden');
 }
 
@@ -95,18 +116,23 @@ function fecharModal() {
   modal.classList.add('hidden');
 }
 
-// ENDEREÇAR
+// ================= ENDEREÇAR =================
 function salvarEndereco() {
+  const lote = modalLote.value;
   const rz = modalRz.value.trim();
-  if (!rz) return alert('RZ é obrigatório');
+
+  if (!lote) return alert('Selecione um lote');
+  if (!rz) return alert('RZ obrigatório');
 
   const { a, r, p } = posicaoAtual;
 
   if (mapa[a].ruas[r].posicoes[p]) {
-    return alert('Endereço já ocupado');
+    alert('Endereço já ocupado');
+    return;
   }
 
   mapa[a].ruas[r].posicoes[p] = {
+    lote,
     rz,
     volume: modalVolume.value || null
   };
@@ -119,11 +145,10 @@ function salvarEndereco() {
 function removerEndereco() {
   const { a, r, p } = posicaoAtual;
   mapa[a].ruas[r].posicoes[p] = null;
-
   salvar();
   fecharModal();
   renderMapa();
 }
 
-// INIT
+// ================= INIT =================
 renderMapa();
