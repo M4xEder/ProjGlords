@@ -1,15 +1,31 @@
 // ======================
+// INICIALIZAÇÃO SEGURA
+// ======================
+document.addEventListener('DOMContentLoaded', () => {
+  carregarEstado();
+  renderAreas();
+  renderLotes();
+  renderExpedidos();
+});
+
+// ======================
 // ESTADO GLOBAL
 // ======================
-let areas = JSON.parse(localStorage.getItem('areas')) || [];
-let lotes = JSON.parse(localStorage.getItem('lotes')) || {};
-let historicoExpedidos = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
+let areas = [];
+let lotes = {};
+let historicoExpedidos = [];
 
 let posicaoAtual = null;
 
 // ======================
 // STORAGE
 // ======================
+function carregarEstado() {
+  areas = JSON.parse(localStorage.getItem('areas')) || [];
+  lotes = JSON.parse(localStorage.getItem('lotes')) || {};
+  historicoExpedidos = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
+}
+
 function salvar() {
   localStorage.setItem('areas', JSON.stringify(areas));
   localStorage.setItem('lotes', JSON.stringify(lotes));
@@ -17,7 +33,7 @@ function salvar() {
 }
 
 // ======================
-// UTIL
+// UTILIDADES
 // ======================
 function gerarCor() {
   return `hsl(${Math.random() * 360},70%,65%)`;
@@ -43,7 +59,7 @@ function cadastrarLote() {
   const total = Number(document.getElementById('loteTotal').value);
 
   if (!nome || total <= 0) {
-    alert('Informe nome e quantidade válida');
+    alert('Informe nome e quantidade');
     return;
   }
 
@@ -66,7 +82,7 @@ function cadastrarLote() {
 
 function excluirLote(nome) {
   if (contarAlocados(nome) > 0) {
-    alert('Não é possível excluir lote com gaylords alocadas');
+    alert('Lote possui gaylords alocadas');
     return;
   }
 
@@ -78,16 +94,16 @@ function excluirLote(nome) {
 }
 
 function alterarQuantidadeLote(nome) {
-  const novoTotal = Number(prompt('Nova quantidade total'));
-  if (novoTotal <= 0) return;
+  const novo = Number(prompt('Nova quantidade'));
+  if (novo <= 0) return;
 
   const usados = contarAlocados(nome);
-  if (novoTotal < usados) {
+  if (novo < usados) {
     alert(`Já existem ${usados} alocados`);
     return;
   }
 
-  lotes[nome].total = novoTotal;
+  lotes[nome].total = novo;
   salvar();
   renderLotes();
 }
@@ -101,16 +117,14 @@ function criarArea() {
 
   areas.push({ nome, ruas: [] });
   document.getElementById('areaNome').value = '';
+
   salvar();
   renderAreas();
 }
 
 function excluirArea(index) {
-  const temOcupado = areas[index].ruas.some(r =>
-    r.posicoes.some(p => p)
-  );
-
-  if (temOcupado) {
+  const ocupada = areas[index].ruas.some(r => r.posicoes.some(p => p));
+  if (ocupada) {
     alert('Área possui gaylords alocadas');
     return;
   }
@@ -138,8 +152,8 @@ function criarRua(areaIndex) {
 }
 
 function excluirRua(a, r) {
-  const temOcupado = areas[a].ruas[r].posicoes.some(p => p);
-  if (temOcupado) {
+  const ocupada = areas[a].ruas[r].posicoes.some(p => p);
+  if (ocupada) {
     alert('Rua possui gaylords alocadas');
     return;
   }
@@ -152,18 +166,21 @@ function excluirRua(a, r) {
 }
 
 // ======================
-// RENDER
+// RENDER MAPA
 // ======================
 function renderAreas() {
-  const container = document.getElementById('mapa');
-  container.innerHTML = '';
+  const mapa = document.getElementById('mapa');
+  if (!mapa) return;
+
+  mapa.innerHTML = '';
 
   areas.forEach((area, a) => {
     const areaDiv = document.createElement('div');
     areaDiv.className = 'area';
 
     areaDiv.innerHTML = `
-      <h3>${area.nome}
+      <h3>
+        ${area.nome}
         <button onclick="excluirArea(${a})">Excluir Área</button>
       </h3>
     `;
@@ -204,12 +221,17 @@ function renderAreas() {
     btnRua.onclick = () => criarRua(a);
 
     areaDiv.appendChild(btnRua);
-    container.appendChild(areaDiv);
+    mapa.appendChild(areaDiv);
   });
 }
 
+// ======================
+// RENDER LOTES
+// ======================
 function renderLotes() {
   const div = document.getElementById('lotesAtivos');
+  if (!div) return;
+
   div.innerHTML = '';
 
   Object.entries(lotes).forEach(([nome, data]) => {
@@ -234,9 +256,10 @@ function renderLotes() {
 // ======================
 function abrirModal(a, r, p) {
   posicaoAtual = { a, r, p };
-  const pos = areas[a].ruas[r].posicoes[p];
+  const modal = document.getElementById('modal');
+  modal.classList.remove('hidden');
 
-  document.getElementById('modal').classList.remove('hidden');
+  const pos = areas[a].ruas[r].posicoes[p];
 
   document.getElementById('modalRz').value = pos?.rz || '';
   document.getElementById('modalVolume').value = pos?.volume || '';
@@ -262,13 +285,12 @@ function salvarEndereco() {
   const volume = document.getElementById('modalVolume').value.trim();
 
   if (!rz) {
-    alert('RZ é obrigatório');
+    alert('RZ obrigatório');
     return;
   }
 
-  const pos = areas[posicaoAtual.a].ruas[posicaoAtual.r].posicoes[posicaoAtual.p];
-
-  if (pos && pos.lote && pos.lote !== lote) {
+  const atual = areas[posicaoAtual.a].ruas[posicaoAtual.r].posicoes[posicaoAtual.p];
+  if (atual && atual.lote && atual.lote !== lote) {
     alert('Endereço já ocupado');
     return;
   }
@@ -291,26 +313,6 @@ function removerEndereco() {
   fecharModal();
   renderAreas();
   renderLotes();
-}
-
-// ======================
-// BUSCA
-// ======================
-function buscar() {
-  const termo = document.getElementById('busca').value.toLowerCase();
-  document.querySelectorAll('.posicao').forEach(p => p.classList.remove('highlight'));
-
-  if (!termo) return;
-
-  document.querySelectorAll('.posicao').forEach(p => {
-    if (
-      (p.dataset.lote || '').toLowerCase().includes(termo) ||
-      (p.dataset.rz || '').toLowerCase().includes(termo) ||
-      (p.dataset.volume || '').toLowerCase().includes(termo)
-    ) {
-      p.classList.add('highlight');
-    }
-  });
 }
 
 // ======================
@@ -338,18 +340,18 @@ function expedirLote(nome) {
   }
 
   lotes[nome].total -= qtd;
-  const parcial = lotes[nome].total > 0;
 
   historicoExpedidos.push({
     lote: nome,
     quantidade: qtd,
     restante: lotes[nome].total,
-    parcial,
     data: new Date().toLocaleString(),
     itens: expedidos
   });
 
-  if (lotes[nome].total <= 0) delete lotes[nome];
+  if (lotes[nome].total <= 0) {
+    delete lotes[nome];
+  }
 
   salvar();
   renderAreas();
@@ -371,18 +373,13 @@ function renderExpedidos() {
       <div class="lote-card">
         <strong>${h.lote}</strong><br>
         Expedidos: ${h.quantidade}<br>
-        ${h.parcial ? 'Parcial<br>' : ''}
+        Restante: ${h.restante}<br>
         ${h.data}
         <details>
           <summary>RZ / Volumes</summary>
-          ${h.itens.map(i => `RZ:${i.rz} Vol:${i.volume || '-'}`).join('<br>')}
+          ${h.itens.map(i => `RZ: ${i.rz} | Vol: ${i.volume || '-'}`).join('<br>')}
         </details>
       </div>
     `;
   });
 }
-
-// ======================
-renderAreas();
-renderLotes();
-renderExpedidos();
