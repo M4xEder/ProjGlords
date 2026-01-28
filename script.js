@@ -45,6 +45,7 @@ btnCriarLote.onclick = () => {
   lotes[nome] = { total: qtd };
   loteNome.value = '';
   loteQtd.value = '';
+
   salvar();
   renderLotes();
 };
@@ -109,8 +110,8 @@ function renderMapa() {
 
     const header = document.createElement('div');
     header.className = 'area-header';
-
     header.innerHTML = `<strong>${area.nome}</strong>`;
+
     const btnExcluir = document.createElement('button');
     btnExcluir.textContent = 'Excluir Área';
     btnExcluir.className = 'danger';
@@ -176,10 +177,12 @@ function abrirModal(a, r, p) {
 
 btnSalvarEndereco.onclick = () => {
   const { a, r, p } = posicaoAtual;
+
   if (mapa[a].ruas[r].posicoes[p]) {
     alert('Endereço ocupado. Remova antes.');
     return;
   }
+
   if (!modalLote.value || !modalRz.value) {
     alert('Lote e RZ são obrigatórios');
     return;
@@ -199,6 +202,7 @@ btnSalvarEndereco.onclick = () => {
 btnRemoverEndereco.onclick = () => {
   const { a, r, p } = posicaoAtual;
   if (!mapa[a].ruas[r].posicoes[p]) return;
+
   mapa[a].ruas[r].posicoes[p] = null;
   salvar();
   modal.classList.add('hidden');
@@ -207,15 +211,27 @@ btnRemoverEndereco.onclick = () => {
 
 btnFecharModal.onclick = () => modal.classList.add('hidden');
 
-// ================= BUSCA =================
+// ================= BUSCA (LOTE / RZ / VOLUME) =================
 btnBuscar.onclick = () => {
-  const termo = buscaInput.value.toLowerCase();
-  document.querySelectorAll('.posicao').forEach(p => p.classList.remove('highlight'));
+  const termo = buscaInput.value.trim().toLowerCase();
+  limparDestaques();
+
+  if (!termo) return;
 
   mapa.forEach((area, a) => {
     area.ruas.forEach((rua, r) => {
       rua.posicoes.forEach((pos, p) => {
-        if (pos && pos.lote.toLowerCase().includes(termo)) {
+        if (!pos) return;
+
+        const lote = pos.lote.toLowerCase();
+        const rz = pos.rz.toLowerCase();
+        const volume = (pos.volume || '').toString().toLowerCase();
+
+        if (
+          lote.includes(termo) ||
+          rz.includes(termo) ||
+          volume.includes(termo)
+        ) {
           mapaDiv
             .querySelectorAll('.area')[a]
             .querySelectorAll('.rua')[r]
@@ -227,8 +243,13 @@ btnBuscar.onclick = () => {
   });
 };
 
-btnLimparBusca.onclick = () =>
-  document.querySelectorAll('.posicao').forEach(p => p.classList.remove('highlight'));
+btnLimparBusca.onclick = limparDestaques;
+
+function limparDestaques() {
+  document
+    .querySelectorAll('.posicao.highlight')
+    .forEach(el => el.classList.remove('highlight'));
+}
 
 // ================= INIT =================
 renderLotes();
