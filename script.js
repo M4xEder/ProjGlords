@@ -1,13 +1,21 @@
+// =======================
+// ESTADO GLOBAL
+// =======================
 let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
 let lotes = JSON.parse(localStorage.getItem('lotes')) || {};
 let posicaoAtual = null;
 
+// =======================
+// STORAGE
+// =======================
 function salvar() {
   localStorage.setItem('mapa', JSON.stringify(mapa));
   localStorage.setItem('lotes', JSON.stringify(lotes));
 }
 
-/* ===== LOTE ===== */
+// =======================
+// LOTE
+// =======================
 function criarLote() {
   const nome = loteNome.value.trim();
   const qtd = Number(loteQtd.value);
@@ -27,45 +35,147 @@ function criarLote() {
 
 function renderLotes() {
   listaLotes.innerHTML = '';
-  Object.keys(lotes).forEach(l =>
-    listaLotes.innerHTML += `<div class="lote-item">${l} - ${lotes[l].total}</div>`
-  );
+  const nomes = Object.keys(lotes);
+
+  if (nomes.length === 0) {
+    listaLotes.innerHTML = '<p>Nenhum lote cadastrado</p>';
+    return;
+  }
+
+  nomes.forEach(nome => {
+    const div = document.createElement('div');
+    div.className = 'lote-item';
+    div.textContent = `${nome} - ${lotes[nome].total}`;
+    listaLotes.appendChild(div);
+  });
 }
 
-/* ===== ÁREA / RUA ===== */
+// =======================
+// ÁREA
+// =======================
 function criarArea() {
   const nome = areaNome.value.trim();
-  if (!nome) return;
+  if (!nome) {
+    alert('Informe o nome da área');
+    return;
+  }
+
   mapa.push({ nome, ruas: [] });
   areaNome.value = '';
+
   salvar();
   renderMapa();
 }
 
+function excluirArea(a) {
+  const area = mapa[a];
+
+  const temGaylord = area.ruas.some(rua =>
+    rua.posicoes.some(pos => pos !== null)
+  );
+
+  if (temGaylord) {
+    alert('Não é possível excluir a área. Existem gaylords alocadas.');
+    return;
+  }
+
+  if (!confirm(`Excluir a área "${area.nome}"?`)) return;
+
+  mapa.splice(a, 1);
+  salvar();
+  renderMapa();
+}
+
+// =======================
+// RUA
+// =======================
 function criarRua(a) {
   const nome = prompt('Nome da rua');
-  const qtd = Number(prompt('Qtd de endereços'));
+  const qtd = Number(prompt('Quantidade de endereços'));
+
   if (!nome || qtd <= 0) return;
 
-  mapa[a].ruas.push({ nome, posicoes: Array(qtd).fill(null) });
+  mapa[a].ruas.push({
+    nome,
+    posicoes: Array(qtd).fill(null)
+  });
+
   salvar();
   renderMapa();
 }
 
-/* ===== MAPA ===== */
+function excluirRua(a, r) {
+  const rua = mapa[a].ruas[r];
+
+  const temGaylord = rua.posicoes.some(pos => pos !== null);
+
+  if (temGaylord) {
+    alert('Não é possível excluir a rua. Existem gaylords alocadas.');
+    return;
+  }
+
+  if (!confirm(`Excluir a rua "${rua.nome}"?`)) return;
+
+  mapa[a].ruas.splice(r, 1);
+  salvar();
+  renderMapa();
+}
+
+// =======================
+// MAPA
+// =======================
 function renderMapa() {
-  mapaDiv = document.getElementById('mapa');
+  const mapaDiv = document.getElementById('mapa');
   mapaDiv.innerHTML = '';
+
+  if (mapa.length === 0) {
+    mapaDiv.innerHTML = '<p>Nenhuma área criada</p>';
+    return;
+  }
 
   mapa.forEach((area, a) => {
     const areaDiv = document.createElement('div');
     areaDiv.className = 'area';
-    areaDiv.innerHTML = `<strong>${area.nome}</strong>`;
 
+    // Header Área
+    const headerArea = document.createElement('div');
+    headerArea.style.display = 'flex';
+    headerArea.style.justifyContent = 'space-between';
+    headerArea.style.alignItems = 'center';
+
+    const tituloArea = document.createElement('strong');
+    tituloArea.textContent = area.nome;
+
+    const btnExcluirArea = document.createElement('button');
+    btnExcluirArea.textContent = 'Excluir Área';
+    btnExcluirArea.className = 'danger';
+    btnExcluirArea.onclick = () => excluirArea(a);
+
+    headerArea.appendChild(tituloArea);
+    headerArea.appendChild(btnExcluirArea);
+    areaDiv.appendChild(headerArea);
+
+    // Ruas
     area.ruas.forEach((rua, r) => {
       const ruaDiv = document.createElement('div');
       ruaDiv.className = 'rua';
-      ruaDiv.innerHTML = `Rua ${rua.nome}`;
+
+      const headerRua = document.createElement('div');
+      headerRua.style.display = 'flex';
+      headerRua.style.justifyContent = 'space-between';
+      headerRua.style.alignItems = 'center';
+
+      const nomeRua = document.createElement('span');
+      nomeRua.textContent = `Rua ${rua.nome}`;
+
+      const btnExcluirRua = document.createElement('button');
+      btnExcluirRua.textContent = 'Excluir Rua';
+      btnExcluirRua.className = 'danger';
+      btnExcluirRua.onclick = () => excluirRua(a, r);
+
+      headerRua.appendChild(nomeRua);
+      headerRua.appendChild(btnExcluirRua);
+      ruaDiv.appendChild(headerRua);
 
       const posDiv = document.createElement('div');
       posDiv.className = 'posicoes';
@@ -74,6 +184,7 @@ function renderMapa() {
         const d = document.createElement('div');
         d.className = 'posicao';
         if (pos) d.classList.add('ocupada');
+
         d.onclick = () => abrirModal(a, r, p);
         posDiv.appendChild(d);
       });
@@ -91,7 +202,9 @@ function renderMapa() {
   });
 }
 
-/* ===== MODAL ===== */
+// =======================
+// MODAL
+// =======================
 function abrirModal(a, r, p) {
   posicaoAtual = { a, r, p };
   const pos = mapa[a].ruas[r].posicoes[p];
@@ -100,9 +213,9 @@ function abrirModal(a, r, p) {
     `Área: ${mapa[a].nome} | Rua: ${mapa[a].ruas[r].nome} | Posição: ${p + 1}`;
 
   modalLote.innerHTML = '<option value="">Selecione</option>';
-  Object.keys(lotes).forEach(l => {
-    modalLote.innerHTML += `<option value="${l}">${l}</option>`;
-  });
+  Object.keys(lotes).forEach(l =>
+    modalLote.innerHTML += `<option value="${l}">${l}</option>`
+  );
 
   modalLote.value = pos?.lote || '';
   modalRz.value = pos?.rz || '';
@@ -125,12 +238,12 @@ function salvarEndereco() {
     return;
   }
 
-  const pos = mapa[posicaoAtual.a]
+  const ref = mapa[posicaoAtual.a]
     .ruas[posicaoAtual.r]
     .posicoes[posicaoAtual.p];
 
-  if (pos) {
-    alert('Endereço já ocupado');
+  if (ref) {
+    alert('Este endereço já está ocupado');
     return;
   }
 
@@ -155,6 +268,8 @@ function removerEndereco() {
   renderMapa();
 }
 
-/* ===== INIT ===== */
+// =======================
+// INIT
+// =======================
 renderMapa();
 renderLotes();
