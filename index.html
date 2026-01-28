@@ -2,72 +2,63 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Controle de Gaylords</title>
+  <title>Mapa de Gaylords</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>Controle de Armazenagem</h1>
+<h1>Gerenciamento de Gaylords</h1>
 
-<!-- ================= CADASTROS ================= -->
-<section class="cadastros">
-
-  <h2>Criar Área</h2>
-  <input id="areaNome" placeholder="Nome da área">
-  <button onclick="criarArea()">Criar Área</button>
-
-  <h2>Criar Lote</h2>
-  <input id="loteNome" placeholder="Nome do lote">
-  <input id="loteTotal" type="number" placeholder="Qtd de gaylords">
-  <button onclick="cadastrarLote()">Cadastrar Lote</button>
-
-</section>
-
-<hr>
-
-<!-- ================= BUSCA ================= -->
-<h2>Buscar Gaylord</h2>
+<!-- BUSCA -->
 <div class="busca">
-  <input id="buscaInput" placeholder="Buscar por Lote, RZ ou Volume">
+  <input type="text" id="buscaInput" placeholder="Buscar por lote, RZ ou volume">
   <button onclick="buscar()">Buscar</button>
-  <button class="secondary" onclick="limparBusca()">Limpar</button>
+  <button onclick="limparBusca()">Limpar Destaque</button>
 </div>
 
-<hr>
+<!-- CADASTRO DE ÁREA -->
+<section class="cadastros">
+  <h2>Cadastrar Área</h2>
+  <input id="areaNome" placeholder="Nome da área">
+  <button onclick="cadastrarArea()">Cadastrar Área</button>
+</section>
 
-<!-- ================= LOTES ATIVOS ================= -->
+<!-- CADASTRO DE LOTE -->
+<section class="cadastros">
+  <h2>Cadastrar Lote</h2>
+  <input id="loteNome" placeholder="Nome do lote">
+  <input id="loteTotal" type="number" placeholder="Quantidade total de gaylords" min="1">
+  <button onclick="cadastrarLote()">Cadastrar Lote</button>
+</section>
+
+<!-- MAPA -->
+<section id="mapa"></section>
+
+<!-- DASHBOARD LOTES ATIVOS -->
 <h2>Lotes Ativos</h2>
-<div id="lotesAtivos"></div>
+<div id="dashboard"></div>
 
-<hr>
-
-<!-- ================= MAPA ================= -->
-<h2>Mapa de Endereços</h2>
-<div id="mapa"></div>
-
-<hr>
-
-<!-- ================= EXPEDIDOS ================= -->
+<!-- LOTES EXPEDIDOS -->
 <h2>Lotes Expedidos</h2>
 <div id="lotesExpedidos"></div>
 
-<!-- ================= MODAL ================= -->
+<!-- MODAL ENDEREÇAMENTO -->
 <div id="modal" class="modal hidden">
   <div class="modal-content">
     <h3>Endereçar Gaylord</h3>
-
-    <label>Lote</label>
-    <select id="modalLote"></select>
-
-    <label>RZ (obrigatório)</label>
-    <input id="modalRz">
-
-    <label>Volume</label>
-    <input id="modalVolume">
-
+    <label>Lote:
+      <select id="modalLote"></select>
+    </label>
+    <label>Volume (opcional):
+      <input id="modalVolume" type="text">
+    </label>
+    <label>RZ (obrigatório):
+      <input id="modalRz" type="text">
+    </label>
     <div class="acoes">
-      <button onclick="salvarEndereco()">Salvar</button>
-      <button onclick="removerEndereco()">Remover</button>
+      <button onclick="confirmarEndereco()">Salvar</button>
+      <button onclick="removerGaylord()">Remover Gaylord</button>
       <button onclick="fecharModal()">Cancelar</button>
     </div>
   </div>
