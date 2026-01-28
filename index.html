@@ -9,14 +9,12 @@
 
 <h1>Mapa de Armazenamento</h1>
 
-<!-- CADASTRO DE ÁREA -->
 <section class="bloco">
   <h2>Criar Área</h2>
   <input id="areaNome" placeholder="Nome da área">
   <button onclick="criarArea()">Criar Área</button>
 </section>
 
-<!-- CADASTRO DE LOTE -->
 <section class="bloco">
   <h2>Cadastrar Lote</h2>
   <input id="loteNome" placeholder="Nome do lote">
@@ -24,17 +22,37 @@
   <button onclick="criarLote()">Cadastrar Lote</button>
 </section>
 
-<!-- LISTA DE LOTES -->
 <section class="bloco">
   <h2>Lotes Cadastrados</h2>
   <div id="listaLotes"></div>
 </section>
 
-<!-- MAPA -->
 <section class="bloco">
-  <h2>Mapa</h2>
+  <h2>Áreas / Ruas / Endereços</h2>
   <div id="mapa"></div>
 </section>
+
+<!-- MODAL -->
+<div id="modal" class="modal hidden">
+  <div class="modal-content">
+    <h3>Endereçar Gaylord</h3>
+
+    <label>Lote</label>
+    <select id="modalLote"></select>
+
+    <label>RZ (obrigatório)</label>
+    <input id="modalRz">
+
+    <label>Volume (opcional)</label>
+    <input id="modalVolume">
+
+    <div class="acoes">
+      <button onclick="salvarEndereco()">Salvar</button>
+      <button class="danger" onclick="removerEndereco()">Remover Gaylord</button>
+      <button onclick="fecharModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
 
 <script src="script.js"></script>
 </body>
