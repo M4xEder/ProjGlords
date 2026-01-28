@@ -1,140 +1,148 @@
+// =======================
+// ESTADO GLOBAL
+// =======================
 let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
 let lotes = JSON.parse(localStorage.getItem('lotes')) || {};
 let posicaoAtual = null;
 
+// =======================
+// SALVAR
+// =======================
 function salvar() {
   localStorage.setItem('mapa', JSON.stringify(mapa));
   localStorage.setItem('lotes', JSON.stringify(lotes));
 }
 
-/* ÁREA */
+// =======================
+// ÁREA
+// =======================
 function criarArea() {
-  const nome = areaNome.value.trim();
-  if (!nome) return alert('Informe o nome');
+  const nome = document.getElementById('areaNome').value.trim();
+  if (!nome) {
+    alert('Informe o nome da área');
+    return;
+  }
+
   mapa.push({ nome, ruas: [] });
-  areaNome.value = '';
+  document.getElementById('areaNome').value = '';
+
   salvar();
   renderMapa();
 }
 
-function criarRua(a) {
+function criarRua(areaIndex) {
   const nome = prompt('Nome da rua');
-  const qtd = Number(prompt('Qtd de endereços'));
+  const qtd = Number(prompt('Quantidade de endereços'));
+
   if (!nome || qtd <= 0) return;
-  mapa[a].ruas.push({ nome, posicoes: Array(qtd).fill(null) });
+
+  mapa[areaIndex].ruas.push({
+    nome,
+    posicoes: Array(qtd).fill(null)
+  });
+
   salvar();
   renderMapa();
 }
 
-/* LOTE */
+// =======================
+// LOTE
+// =======================
 function criarLote() {
-  const nome = loteNome.value.trim();
-  const qtd = Number(loteQtd.value);
-  if (!nome || qtd <= 0) return alert('Dados inválidos');
+  const nome = document.getElementById('loteNome').value.trim();
+  const qtd = Number(document.getElementById('loteQtd').value);
+
+  if (!nome || qtd <= 0) {
+    alert('Informe nome e quantidade');
+    return;
+  }
+
   lotes[nome] = { total: qtd };
-  loteNome.value = '';
-  loteQtd.value = '';
+
+  document.getElementById('loteNome').value = '';
+  document.getElementById('loteQtd').value = '';
+
   salvar();
   renderLotes();
 }
 
-/* MAPA */
+// =======================
+// MAPA (CORRIGIDO)
+// =======================
 function renderMapa() {
+  const mapaDiv = document.getElementById('mapa');
   mapaDiv.innerHTML = '';
+
+  if (mapa.length === 0) {
+    mapaDiv.innerHTML = '<p>Nenhuma área criada</p>';
+    return;
+  }
+
   mapa.forEach((area, a) => {
-    const d = document.createElement('div');
-    d.className = 'area';
-    d.innerHTML = `<strong>${area.nome}</strong>`;
+    const areaDiv = document.createElement('div');
+    areaDiv.className = 'area';
+
+    areaDiv.innerHTML = `<strong>${area.nome}</strong>`;
+
     area.ruas.forEach((rua, r) => {
-      const rd = document.createElement('div');
-      rd.className = 'rua';
-      rd.innerHTML = `Rua ${rua.nome}`;
-      const pdiv = document.createElement('div');
-      pdiv.className = 'posicoes';
+      const ruaDiv = document.createElement('div');
+      ruaDiv.className = 'rua';
+      ruaDiv.innerHTML = `Rua ${rua.nome}`;
+
+      const posDiv = document.createElement('div');
+      posDiv.className = 'posicoes';
 
       rua.posicoes.forEach((pos, p) => {
-        const el = document.createElement('div');
-        el.className = 'posicao';
-        if (pos) el.classList.add('ocupada');
-        el.onclick = () => abrirModal(a, r, p);
-        pdiv.appendChild(el);
+        const posEl = document.createElement('div');
+        posEl.className = 'posicao';
+        if (pos) posEl.classList.add('ocupada');
+        posEl.onclick = () => abrirModal(a, r, p);
+        posDiv.appendChild(posEl);
       });
 
-      rd.appendChild(pdiv);
-      d.appendChild(rd);
+      ruaDiv.appendChild(posDiv);
+      areaDiv.appendChild(ruaDiv);
     });
 
-    const btn = document.createElement('button');
-    btn.textContent = 'Adicionar Rua';
-    btn.onclick = () => criarRua(a);
-    d.appendChild(btn);
+    const btnRua = document.createElement('button');
+    btnRua.textContent = 'Adicionar Rua';
+    btnRua.onclick = () => criarRua(a);
 
-    mapaDiv.appendChild(d);
+    areaDiv.appendChild(btnRua);
+    mapaDiv.appendChild(areaDiv);
   });
 }
 
-/* LOTES */
+// =======================
+// LOTES
+// =======================
 function renderLotes() {
-  listaLotes.innerHTML = '';
-  Object.keys(lotes).forEach(l => {
-    const d = document.createElement('div');
-    d.className = 'lote-item';
-    d.textContent = `${l} - ${lotes[l].total}`;
-    listaLotes.appendChild(d);
+  const lista = document.getElementById('listaLotes');
+  lista.innerHTML = '';
+
+  const nomes = Object.keys(lotes);
+  if (nomes.length === 0) {
+    lista.innerHTML = '<p>Nenhum lote cadastrado</p>';
+    return;
+  }
+
+  nomes.forEach(nome => {
+    const div = document.createElement('div');
+    div.className = 'lote-item';
+    div.textContent = `${nome} - ${lotes[nome].total}`;
+    lista.appendChild(div);
   });
 }
 
-/* MODAL */
+// =======================
+// MODAL (placeholder)
+// =======================
 function abrirModal(a, r, p) {
-  posicaoAtual = { a, r, p };
-  modal.classList.remove('hidden');
-
-  modalLote.innerHTML = '<option value="">Selecione</option>';
-  Object.keys(lotes).forEach(l => {
-    modalLote.innerHTML += `<option>${l}</option>`;
-  });
-
-  const atual = mapa[a].ruas[r].posicoes[p];
-  modalLote.value = atual?.lote || '';
-  modalRz.value = atual?.rz || '';
-  modalVolume.value = atual?.volume || '';
+  alert(`Endereço clicado: Área ${a + 1}, Rua ${r + 1}, Posição ${p + 1}`);
 }
 
-function fecharModal() {
-  modal.classList.add('hidden');
-}
-
-function salvarEndereco() {
-  const lote = modalLote.value;
-  const rz = modalRz.value.trim();
-  const volume = modalVolume.value.trim() || null;
-
-  if (!lote || !rz) return alert('Lote e RZ são obrigatórios');
-
-  const pos = mapa[posicaoAtual.a]
-    .ruas[posicaoAtual.r]
-    .posicoes[posicaoAtual.p];
-
-  if (pos) return alert('Endereço já ocupado');
-
-  mapa[posicaoAtual.a]
-    .ruas[posicaoAtual.r]
-    .posicoes[posicaoAtual.p] = { lote, rz, volume };
-
-  salvar();
-  fecharModal();
-  renderMapa();
-}
-
-function removerEndereco() {
-  mapa[posicaoAtual.a]
-    .ruas[posicaoAtual.r]
-    .posicoes[posicaoAtual.p] = null;
-  salvar();
-  fecharModal();
-  renderMapa();
-}
-
-/* INIT */
+// =======================
+// INIT
+// =======================
 renderMapa();
 renderLotes();
