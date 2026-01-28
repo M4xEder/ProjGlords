@@ -18,8 +18,8 @@ function salvar() {
 // LOTE
 // =======================
 function criarLote() {
-  const nome = loteNome.value.trim();
-  const qtd = Number(loteQtd.value);
+  const nome = document.getElementById('loteNome').value.trim();
+  const qtd = Number(document.getElementById('loteQtd').value);
 
   if (!nome || qtd <= 0) {
     alert('Informe nome e quantidade');
@@ -27,36 +27,52 @@ function criarLote() {
   }
 
   lotes[nome] = { total: qtd };
-  loteNome.value = '';
-  loteQtd.value = '';
+
+  document.getElementById('loteNome').value = '';
+  document.getElementById('loteQtd').value = '';
 
   salvar();
   renderLotes();
 }
 
 function renderLotes() {
-  listaLotes.innerHTML = '';
-  Object.keys(lotes).forEach(lote => {
+  const lista = document.getElementById('listaLotes');
+  lista.innerHTML = '';
+
+  const nomes = Object.keys(lotes);
+  if (nomes.length === 0) {
+    lista.innerHTML = '<p>Nenhum lote cadastrado</p>';
+    return;
+  }
+
+  nomes.forEach(lote => {
     const div = document.createElement('div');
     div.className = 'lote-item';
     div.textContent = `${lote} (${lotes[lote].total})`;
-    listaLotes.appendChild(div);
+    lista.appendChild(div);
   });
 }
 
 // =======================
-// ÁREA / RUA
+// ÁREA
 // =======================
 function criarArea() {
-  const nome = areaNome.value.trim();
-  if (!nome) return alert('Informe o nome da área');
+  const nome = document.getElementById('areaNome').value.trim();
+  if (!nome) {
+    alert('Informe o nome da área');
+    return;
+  }
 
   mapa.push({ nome, ruas: [] });
-  areaNome.value = '';
+  document.getElementById('areaNome').value = '';
+
   salvar();
   renderMapa();
 }
 
+// =======================
+// RUA
+// =======================
 function criarRua(a) {
   const nome = prompt('Nome da rua');
   const qtd = Number(prompt('Quantidade de endereços'));
@@ -76,7 +92,13 @@ function criarRua(a) {
 // MAPA
 // =======================
 function renderMapa() {
+  const mapaDiv = document.getElementById('mapa');
   mapaDiv.innerHTML = '';
+
+  if (mapa.length === 0) {
+    mapaDiv.innerHTML = '<p>Nenhuma área criada</p>';
+    return;
+  }
 
   mapa.forEach((area, a) => {
     const areaDiv = document.createElement('div');
@@ -98,8 +120,6 @@ function renderMapa() {
 
         if (pos) {
           d.classList.add('ocupada');
-
-          // 🔑 DATASET GARANTIDO
           d.dataset.lote = pos.lote || '';
           d.dataset.rz = pos.rz || '';
           d.dataset.volume = pos.volume || '';
@@ -121,14 +141,18 @@ function renderMapa() {
     mapaDiv.appendChild(areaDiv);
   });
 
-  reaplicarBusca(); // 🔁 reaplica destaque após render
+  reaplicarBusca();
 }
 
 // =======================
-// BUSCA (CORRIGIDA)
+// BUSCA
 // =======================
 function buscar() {
-  termoBuscaAtual = buscaInput.value.trim().toLowerCase();
+  termoBuscaAtual = document
+    .getElementById('buscaInput')
+    .value.trim()
+    .toLowerCase();
+
   aplicarBusca();
 }
 
@@ -176,39 +200,45 @@ function abrirModal(a, r, p) {
   posicaoAtual = { a, r, p };
   const pos = mapa[a].ruas[r].posicoes[p];
 
-  infoEndereco.textContent =
+  document.getElementById('infoEndereco').textContent =
     `Área: ${mapa[a].nome} | Rua: ${mapa[a].ruas[r].nome} | Posição: ${p + 1}`;
 
-  modalLote.innerHTML = '<option value="">Selecione</option>';
+  const select = document.getElementById('modalLote');
+  select.innerHTML = '<option value="">Selecione</option>';
   Object.keys(lotes).forEach(l =>
-    modalLote.innerHTML += `<option value="${l}">${l}</option>`
+    select.innerHTML += `<option value="${l}">${l}</option>`
   );
 
-  modalLote.value = pos?.lote || '';
-  modalRz.value = pos?.rz || '';
-  modalVolume.value = pos?.volume || '';
+  select.value = pos?.lote || '';
+  document.getElementById('modalRz').value = pos?.rz || '';
+  document.getElementById('modalVolume').value = pos?.volume || '';
 
-  modal.classList.remove('hidden');
+  document.getElementById('modal').classList.remove('hidden');
 }
 
 function fecharModal() {
-  modal.classList.add('hidden');
+  document.getElementById('modal').classList.add('hidden');
 }
 
 // =======================
 // ENDEREÇAMENTO
 // =======================
 function salvarEndereco() {
-  const lote = modalLote.value;
-  const rz = modalRz.value.trim();
-  const volume = modalVolume.value.trim() || null;
+  const lote = document.getElementById('modalLote').value;
+  const rz = document.getElementById('modalRz').value.trim();
+  const volume = document.getElementById('modalVolume').value.trim() || null;
 
   if (!lote || !rz) {
     alert('Lote e RZ são obrigatórios');
     return;
   }
 
-  if (mapa[posicaoAtual.a].ruas[posicaoAtual.r].posicoes[posicaoAtual.p]) {
+  const ref =
+    mapa[posicaoAtual.a]
+      .ruas[posicaoAtual.r]
+      .posicoes[posicaoAtual.p];
+
+  if (ref) {
     alert('Endereço já ocupado');
     return;
   }
