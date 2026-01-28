@@ -28,7 +28,7 @@ let posicaoAtual = null;
 
 // ================= UTIL =================
 function gerarCor() {
-  return `hsl(${Math.random() * 360}, 70%, 70%)`;
+  return `hsl(${Math.random() * 360},70%,70%)`;
 }
 
 // ================= STORAGE =================
@@ -52,10 +52,7 @@ btnCriarLote.onclick = () => {
     return;
   }
 
-  lotes[nome] = {
-    total: qtd,
-    cor: gerarCor()
-  };
+  lotes[nome] = { total: qtd, cor: gerarCor() };
 
   loteNome.value = '';
   loteQtd.value = '';
@@ -65,15 +62,50 @@ btnCriarLote.onclick = () => {
   renderMapa();
 };
 
+function loteEmUso(nome) {
+  return mapa.some(area =>
+    area.ruas.some(rua =>
+      rua.posicoes.some(pos => pos && pos.lote === nome)
+    )
+  );
+}
+
 function renderLotes() {
   listaLotes.innerHTML = '';
+
   Object.entries(lotes).forEach(([nome, data]) => {
     const div = document.createElement('div');
-    div.innerHTML = `
-      <span style="display:inline-block;width:12px;height:12px;
-      background:${data.cor};margin-right:6px;border-radius:3px"></span>
-      ${nome} (${data.total})
-    `;
+    div.className = 'lote-item';
+
+    const cor = document.createElement('span');
+    cor.className = 'lote-cor';
+    cor.style.background = data.cor;
+
+    const info = document.createElement('span');
+    info.textContent = `${nome} (${data.total})`;
+
+    const btnExcluir = document.createElement('button');
+    btnExcluir.textContent = 'Excluir';
+    btnExcluir.className = 'danger';
+
+    btnExcluir.onclick = () => {
+      if (loteEmUso(nome)) {
+        alert('Não é possível excluir. Lote possui gaylords alocadas.');
+        return;
+      }
+
+      if (!confirm(`Excluir o lote "${nome}"?`)) return;
+
+      delete lotes[nome];
+      salvar();
+      renderLotes();
+      renderMapa();
+    };
+
+    div.appendChild(cor);
+    div.appendChild(info);
+    div.appendChild(btnExcluir);
+
     listaLotes.appendChild(div);
   });
 }
@@ -98,7 +130,6 @@ function criarRua(a) {
   renderMapa();
 }
 
-// ================= EXCLUSÕES =================
 function excluirRua(a, r) {
   if (mapa[a].ruas[r].posicoes.some(p => p)) {
     alert('Rua possui gaylords alocadas');
@@ -131,12 +162,12 @@ function renderMapa() {
     header.className = 'area-header';
     header.innerHTML = `<strong>${area.nome}</strong>`;
 
-    const btnExcluir = document.createElement('button');
-    btnExcluir.textContent = 'Excluir Área';
-    btnExcluir.className = 'danger';
-    btnExcluir.onclick = () => excluirArea(a);
-    header.appendChild(btnExcluir);
+    const btnExcluirArea = document.createElement('button');
+    btnExcluirArea.textContent = 'Excluir Área';
+    btnExcluirArea.className = 'danger';
+    btnExcluirArea.onclick = () => excluirArea(a);
 
+    header.appendChild(btnExcluirArea);
     areaDiv.appendChild(header);
 
     area.ruas.forEach((rua, r) => {
@@ -151,8 +182,8 @@ function renderMapa() {
       btnExcluirRua.textContent = 'Excluir Rua';
       btnExcluirRua.className = 'danger';
       btnExcluirRua.onclick = () => excluirRua(a, r);
-      ruaHeader.appendChild(btnExcluirRua);
 
+      ruaHeader.appendChild(btnExcluirRua);
       ruaDiv.appendChild(ruaHeader);
 
       const posDiv = document.createElement('div');
@@ -246,12 +277,11 @@ btnBuscar.onclick = () => {
       rua.posicoes.forEach((pos, p) => {
         if (!pos) return;
 
-        const match =
+        if (
           pos.lote.toLowerCase().includes(termo) ||
           pos.rz.toLowerCase().includes(termo) ||
-          (pos.volume || '').toString().includes(termo);
-
-        if (match) {
+          (pos.volume || '').toString().includes(termo)
+        ) {
           mapaDiv
             .querySelectorAll('.area')[a]
             .querySelectorAll('.rua')[r]
@@ -266,7 +296,8 @@ btnBuscar.onclick = () => {
 btnLimparBusca.onclick = limparDestaques;
 
 function limparDestaques() {
-  document.querySelectorAll('.posicao.highlight')
+  document
+    .querySelectorAll('.posicao.highlight')
     .forEach(p => p.classList.remove('highlight'));
 }
 
