@@ -4,17 +4,12 @@ body {
   padding: 20px;
 }
 
-h1 {
-  margin-bottom: 20px;
+/* Títulos */
+h1, h2, h3 {
+  margin-bottom: 10px;
 }
 
-.box {
-  background: #fff;
-  padding: 10px;
-  border-radius: 6px;
-  margin-bottom: 15px;
-}
-
+/* Inputs e botões */
 input, select, button {
   padding: 6px;
   margin: 4px 0;
@@ -24,18 +19,46 @@ button {
   cursor: pointer;
 }
 
-#listaLotes div {
-  background: #eef;
-  padding: 4px;
-  margin-top: 4px;
+/* Botão perigo */
+button.danger {
+  background: #c0392b;
+  color: white;
+  border: none;
   border-radius: 4px;
 }
 
-.area {
+button.danger:hover {
+  opacity: 0.85;
+}
+
+/* Layout */
+section {
   background: #fff;
-  padding: 10px;
+  padding: 12px;
   margin-bottom: 15px;
   border-radius: 6px;
+}
+
+/* Lotes */
+.lote-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.lote-cor {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+/* Área */
+.area {
+  background: #fff;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 15px;
 }
 
 .area-header,
@@ -45,10 +68,13 @@ button {
   align-items: center;
 }
 
+/* Rua */
 .rua {
   margin-top: 10px;
+  padding-left: 10px;
 }
 
+/* Endereços */
 .posicoes {
   display: flex;
   gap: 5px;
@@ -60,12 +86,14 @@ button {
   height: 30px;
   border: 1px solid #999;
   cursor: pointer;
+  border-radius: 3px;
 }
 
 .posicao.ocupada {
-  background: #9ae6b4;
+  border: 2px solid #000;
 }
 
+/* Destaque da busca */
 .posicao.highlight {
   outline: 3px solid red;
   animation: piscar 1s infinite;
@@ -77,35 +105,35 @@ button {
   100% { outline-color: red; }
 }
 
+/* Modal */
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.5);
+  background: rgba(0,0,0,0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
 }
 
-.modal-content {
-  background: #fff;
-  padding: 15px;
-  border-radius: 6px;
-  width: 280px;
-}
-
-.hidden {
+.modal.hidden {
   display: none;
 }
 
-.acoes {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 6px;
+  width: 300px;
 }
 
-.danger {
-  background: #b91c1c;
-  color: white;
-  border: none;
-  border-radius: 4px;
+.modal-content label {
+  display: block;
+  margin-top: 10px;
+}
+
+/* Busca */
+.busca {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
 }
