@@ -80,3 +80,8 @@ button {
   display: flex;
   gap: 8px;
 }
+.danger {
+  background: #b91c1c;
+  color: #fff;
+  border: none;
+}
