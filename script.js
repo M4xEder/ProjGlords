@@ -30,6 +30,17 @@ function criarArea() {
   renderMapa();
 }
 
+function excluirArea(a) {
+  if (!confirm('Excluir esta área e todas as ruas dentro dela?')) return;
+
+  mapa.splice(a, 1);
+  salvar();
+  renderMapa();
+}
+
+// =======================
+// RUA
+// =======================
 function criarRua(areaIndex) {
   const nome = prompt('Nome da rua');
   const qtd = Number(prompt('Quantidade de endereços'));
@@ -41,6 +52,14 @@ function criarRua(areaIndex) {
     posicoes: Array(qtd).fill(null)
   });
 
+  salvar();
+  renderMapa();
+}
+
+function excluirRua(a, r) {
+  if (!confirm('Excluir esta rua e todos os endereços?')) return;
+
+  mapa[a].ruas.splice(r, 1);
   salvar();
   renderMapa();
 }
@@ -67,7 +86,7 @@ function criarLote() {
 }
 
 // =======================
-// MAPA (CORRIGIDO)
+// MAPA (COM BOTÕES)
 // =======================
 function renderMapa() {
   const mapaDiv = document.getElementById('mapa');
@@ -82,12 +101,41 @@ function renderMapa() {
     const areaDiv = document.createElement('div');
     areaDiv.className = 'area';
 
-    areaDiv.innerHTML = `<strong>${area.nome}</strong>`;
+    // Cabeçalho da área
+    const headerArea = document.createElement('div');
+    headerArea.style.display = 'flex';
+    headerArea.style.justifyContent = 'space-between';
+    headerArea.style.alignItems = 'center';
 
+    headerArea.innerHTML = `<strong>${area.nome}</strong>`;
+
+    const btnExcluirArea = document.createElement('button');
+    btnExcluirArea.textContent = 'Excluir Área';
+    btnExcluirArea.className = 'danger';
+    btnExcluirArea.onclick = () => excluirArea(a);
+
+    headerArea.appendChild(btnExcluirArea);
+    areaDiv.appendChild(headerArea);
+
+    // Ruas
     area.ruas.forEach((rua, r) => {
       const ruaDiv = document.createElement('div');
       ruaDiv.className = 'rua';
-      ruaDiv.innerHTML = `Rua ${rua.nome}`;
+
+      const headerRua = document.createElement('div');
+      headerRua.style.display = 'flex';
+      headerRua.style.justifyContent = 'space-between';
+      headerRua.style.alignItems = 'center';
+
+      headerRua.innerHTML = `<span>Rua ${rua.nome}</span>`;
+
+      const btnExcluirRua = document.createElement('button');
+      btnExcluirRua.textContent = 'Excluir Rua';
+      btnExcluirRua.className = 'danger';
+      btnExcluirRua.onclick = () => excluirRua(a, r);
+
+      headerRua.appendChild(btnExcluirRua);
+      ruaDiv.appendChild(headerRua);
 
       const posDiv = document.createElement('div');
       posDiv.className = 'posicoes';
@@ -96,6 +144,7 @@ function renderMapa() {
         const posEl = document.createElement('div');
         posEl.className = 'posicao';
         if (pos) posEl.classList.add('ocupada');
+
         posEl.onclick = () => abrirModal(a, r, p);
         posDiv.appendChild(posEl);
       });
@@ -114,7 +163,7 @@ function renderMapa() {
 }
 
 // =======================
-// LOTES
+// LOTES VISUAIS
 // =======================
 function renderLotes() {
   const lista = document.getElementById('listaLotes');
@@ -135,10 +184,14 @@ function renderLotes() {
 }
 
 // =======================
-// MODAL (placeholder)
+// MODAL (TEMP)
 // =======================
 function abrirModal(a, r, p) {
-  alert(`Endereço clicado: Área ${a + 1}, Rua ${r + 1}, Posição ${p + 1}`);
+  alert(
+    `Área: ${mapa[a].nome}\n` +
+    `Rua: ${mapa[a].ruas[r].nome}\n` +
+    `Posição: ${p + 1}`
+  );
 }
 
 // =======================
