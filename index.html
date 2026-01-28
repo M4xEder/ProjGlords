@@ -1,18 +1,25 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>Mapa de Gaylords</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>Gestão de Gaylords</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <h1>Gestão de Gaylords</h1>
 
 <section class="bloco">
+  <h2>Buscar</h2>
+  <input id="buscaInput" placeholder="Buscar por lote, RZ ou volume">
+  <button onclick="buscar()">Buscar</button>
+  <button onclick="limparBusca()">Limpar</button>
+</section>
+
+<section class="bloco">
   <h2>Cadastrar Lote</h2>
   <input id="loteNome" placeholder="Nome do lote">
-  <input id="loteQtd" type="number" placeholder="Qtd gaylords">
+  <input id="loteQtd" type="number" placeholder="Quantidade">
   <button id="btnCriarLote">Criar lote</button>
 </section>
 
@@ -28,7 +35,7 @@
 </section>
 
 <section class="bloco">
-  <h2>Mapa de Armazenamento</h2>
+  <h2>Mapa</h2>
   <div id="mapa"></div>
 </section>
 
@@ -41,14 +48,12 @@
 <div id="modal" class="modal hidden">
   <div class="modal-content">
     <h3>Endereçar Gaylord</h3>
-
     <select id="modalLote"></select>
     <input id="modalRz" placeholder="RZ (obrigatório)">
     <input id="modalVolume" placeholder="Volume (opcional)">
-
     <button id="btnSalvarEndereco">Salvar</button>
     <button id="btnRemoverEndereco">Remover</button>
-    <button id="btnFecharModal">Fechar</button>
+    <button onclick="fecharModal()">Fechar</button>
   </div>
 </div>
 
