@@ -1,11 +1,7 @@
 body {
   font-family: Arial, sans-serif;
-  background: #f3f3f3;
+  background: #f2f2f2;
   padding: 20px;
-}
-
-h1, h2 {
-  margin-bottom: 10px;
 }
 
 .bloco {
@@ -20,14 +16,10 @@ input, button, select {
   margin: 4px 0;
 }
 
-button {
-  cursor: pointer;
-}
-
 .area {
   border: 1px solid #ccc;
   padding: 10px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 }
 
 .rua {
@@ -51,24 +43,27 @@ button {
   border: 2px solid #000;
 }
 
+.posicao.highlight {
+  outline: 3px solid red;
+}
+
 .lote-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 6px;
 }
 
 .lote-cor {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
 }
 
-.historico-item {
-  border: 1px solid #ccc;
-  padding: 8px;
-  margin-bottom: 6px;
-  background: #fafafa;
+button.danger {
+  background: #c0392b;
+  color: white;
+  border: none;
 }
 
 .modal {
@@ -76,15 +71,14 @@ button {
   inset: 0;
   background: rgba(0,0,0,.5);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
 }
 
 .modal-content {
-  background: #fff;
+  background: white;
   padding: 20px;
   border-radius: 6px;
-  width: 260px;
 }
 
 .hidden {
