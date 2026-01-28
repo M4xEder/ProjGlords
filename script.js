@@ -1,3 +1,4 @@
+// ================= ESTADO =================
 let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
 let lotes = JSON.parse(localStorage.getItem('lotes')) || {};
 let posicaoAtual = null;
@@ -28,15 +29,20 @@ btnCriarLote.onclick = () => {
 
 function renderLotes() {
   listaLotes.innerHTML = '';
-  Object.keys(lotes).forEach(l =>
-    listaLotes.innerHTML += `<div>${l} (${lotes[l].total})</div>`
-  );
+  Object.keys(lotes).forEach(lote => {
+    const div = document.createElement('div');
+    div.textContent = `${lote} (${lotes[lote].total})`;
+    listaLotes.appendChild(div);
+  });
 }
 
 // ================= ÁREA =================
 btnCriarArea.onclick = () => {
   const nome = areaNome.value.trim();
-  if (!nome) return alert('Informe o nome da área');
+  if (!nome) {
+    alert('Informe o nome da área');
+    return;
+  }
 
   mapa.push({ nome, ruas: [] });
   areaNome.value = '';
@@ -62,39 +68,39 @@ function criarRua(areaIndex) {
 }
 
 // ================= VALIDAÇÕES =================
-function ruaTemGaylord(areaIndex, ruaIndex) {
-  return mapa[areaIndex].ruas[ruaIndex].posicoes.some(p => p !== null);
+function ruaTemGaylord(a, r) {
+  return mapa[a].ruas[r].posicoes.some(p => p !== null);
 }
 
-function areaTemGaylord(areaIndex) {
-  return mapa[areaIndex].ruas.some(rua =>
+function areaTemGaylord(a) {
+  return mapa[a].ruas.some(rua =>
     rua.posicoes.some(p => p !== null)
   );
 }
 
-// ================= EXCLUIR =================
-function excluirRua(areaIndex, ruaIndex) {
-  if (ruaTemGaylord(areaIndex, ruaIndex)) {
-    alert('Não é possível excluir esta rua. Existem gaylords alocadas.');
+// ================= EXCLUSÃO =================
+function excluirRua(a, r) {
+  if (ruaTemGaylord(a, r)) {
+    alert('Não é possível excluir a rua. Existem gaylords alocadas.');
     return;
   }
 
-  if (!confirm('Deseja excluir esta rua?')) return;
+  if (!confirm('Excluir esta rua?')) return;
 
-  mapa[areaIndex].ruas.splice(ruaIndex, 1);
+  mapa[a].ruas.splice(r, 1);
   salvar();
   renderMapa();
 }
 
-function excluirArea(areaIndex) {
-  if (areaTemGaylord(areaIndex)) {
-    alert('Não é possível excluir esta área. Existem gaylords alocadas.');
+function excluirArea(a) {
+  if (areaTemGaylord(a)) {
+    alert('Não é possível excluir a área. Existem gaylords alocadas.');
     return;
   }
 
-  if (!confirm('Deseja excluir esta área?')) return;
+  if (!confirm('Excluir esta área?')) return;
 
-  mapa.splice(areaIndex, 1);
+  mapa.splice(a, 1);
   salvar();
   renderMapa();
 }
@@ -107,19 +113,41 @@ function renderMapa() {
     const areaDiv = document.createElement('div');
     areaDiv.className = 'area';
 
-    areaDiv.innerHTML = `
-      <strong>${area.nome}</strong>
-      <button onclick="excluirArea(${a})" class="danger">Excluir Área</button>
-    `;
+    // HEADER ÁREA
+    const areaHeader = document.createElement('div');
+    areaHeader.className = 'area-header';
 
+    const titulo = document.createElement('strong');
+    titulo.textContent = area.nome;
+
+    const btnExcluirArea = document.createElement('button');
+    btnExcluirArea.textContent = 'Excluir Área';
+    btnExcluirArea.className = 'danger';
+    btnExcluirArea.onclick = () => excluirArea(a);
+
+    areaHeader.appendChild(titulo);
+    areaHeader.appendChild(btnExcluirArea);
+    areaDiv.appendChild(areaHeader);
+
+    // RUAS
     area.ruas.forEach((rua, r) => {
       const ruaDiv = document.createElement('div');
       ruaDiv.className = 'rua';
 
-      ruaDiv.innerHTML = `
-        Rua ${rua.nome}
-        <button onclick="excluirRua(${a},${r})" class="danger">Excluir Rua</button>
-      `;
+      const ruaHeader = document.createElement('div');
+      ruaHeader.className = 'rua-header';
+
+      const ruaTitulo = document.createElement('span');
+      ruaTitulo.textContent = `Rua ${rua.nome}`;
+
+      const btnExcluirRua = document.createElement('button');
+      btnExcluirRua.textContent = 'Excluir Rua';
+      btnExcluirRua.className = 'danger';
+      btnExcluirRua.onclick = () => excluirRua(a, r);
+
+      ruaHeader.appendChild(ruaTitulo);
+      ruaHeader.appendChild(btnExcluirRua);
+      ruaDiv.appendChild(ruaHeader);
 
       const posDiv = document.createElement('div');
       posDiv.className = 'posicoes';
