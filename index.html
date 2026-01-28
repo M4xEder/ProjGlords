@@ -34,13 +34,14 @@
     <select id="modalLote"></select>
 
     <label>RZ *</label>
-    <input id="modalRz" placeholder="Obrigatório">
+    <input id="modalRz">
 
     <label>Volume</label>
-    <input id="modalVolume" placeholder="Opcional">
+    <input id="modalVolume">
 
     <div class="acoes">
-      <button onclick="salvarEndereco()">Salvar</button>
+      <button id="btnSalvar" onclick="salvarEndereco()">Salvar</button>
+      <button id="btnRemover" class="danger" onclick="removerEndereco()">Remover gaylord</button>
       <button onclick="fecharModal()">Cancelar</button>
     </div>
   </div>
