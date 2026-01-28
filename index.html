@@ -9,10 +9,22 @@
 
 <h1>Mapa de Armazenagem</h1>
 
+<!-- CADASTRO DE LOTE -->
 <section class="cadastro">
+  <h2>Cadastrar Lote</h2>
+  <input id="loteNome" placeholder="Nome do lote">
+  <input id="loteQtd" type="number" placeholder="Qtd de gaylords" min="1">
+  <button onclick="criarLote()">Cadastrar Lote</button>
+</section>
+
+<!-- CADASTRO DE ÁREA -->
+<section class="cadastro">
+  <h2>Cadastrar Área</h2>
   <input id="areaNome" placeholder="Nome da área">
   <button onclick="criarArea()">Criar Área</button>
 </section>
+
+<hr>
 
 <section id="mapa"></section>
 
@@ -21,11 +33,17 @@
   <div class="modal-content">
     <h3>Endereçar Gaylord</h3>
 
-    <input id="modalRz" placeholder="RZ (obrigatório)">
-    <input id="modalVolume" placeholder="Volume (opcional)">
+    <label>Lote</label>
+    <select id="modalLote"></select>
+
+    <label>RZ (obrigatório)</label>
+    <input id="modalRz">
+
+    <label>Volume (opcional)</label>
+    <input id="modalVolume">
 
     <button onclick="salvarEndereco()">Salvar</button>
-    <button onclick="removerEndereco()">Remover</button>
+    <button onclick="removerEndereco()" class="danger">Remover</button>
     <button onclick="fecharModal()">Cancelar</button>
   </div>
 </div>
