@@ -2,51 +2,31 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Mapa de Gaylords</title>
+  <title>Mapa de Armazenagem</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>Mapa de Endereçamento</h1>
+<h1>Mapa de Armazenagem</h1>
 
 <section class="cadastro">
-  <h2>Criar Área</h2>
   <input id="areaNome" placeholder="Nome da área">
   <button onclick="criarArea()">Criar Área</button>
 </section>
 
-<section class="cadastro">
-  <h2>Cadastrar Lote</h2>
-  <input id="loteNome" placeholder="Nome do lote">
-  <input id="loteQtd" type="number" placeholder="Qtd Gaylords">
-  <button onclick="criarLote()">Cadastrar Lote</button>
-</section>
-
-<h2>Lotes Cadastrados</h2>
-<div id="listaLotes"></div>
-
-<h2>Mapa</h2>
-<div id="mapa"></div>
+<section id="mapa"></section>
 
 <!-- MODAL -->
 <div id="modal" class="modal hidden">
   <div class="modal-content">
     <h3>Endereçar Gaylord</h3>
 
-    <label>Lote</label>
-    <select id="modalLote"></select>
+    <input id="modalRz" placeholder="RZ (obrigatório)">
+    <input id="modalVolume" placeholder="Volume (opcional)">
 
-    <label>RZ *</label>
-    <input id="modalRz">
-
-    <label>Volume</label>
-    <input id="modalVolume">
-
-    <div class="acoes">
-      <button id="btnSalvar" onclick="salvarEndereco()">Salvar</button>
-      <button id="btnRemover" class="danger" onclick="removerEndereco()">Remover gaylord</button>
-      <button onclick="fecharModal()">Cancelar</button>
-    </div>
+    <button onclick="salvarEndereco()">Salvar</button>
+    <button onclick="removerEndereco()">Remover</button>
+    <button onclick="fecharModal()">Cancelar</button>
   </div>
 </div>
 
