@@ -2,51 +2,39 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Mapa de Armazenagem</title>
+  <title>Mapa de Armazenamento</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>Mapa de Armazenagem</h1>
-
-<!-- CADASTRO DE LOTE -->
-<section class="cadastro">
-  <h2>Cadastrar Lote</h2>
-  <input id="loteNome" placeholder="Nome do lote">
-  <input id="loteQtd" type="number" placeholder="Qtd de gaylords" min="1">
-  <button onclick="criarLote()">Cadastrar Lote</button>
-</section>
+<h1>Mapa de Armazenamento</h1>
 
 <!-- CADASTRO DE ÁREA -->
-<section class="cadastro">
-  <h2>Cadastrar Área</h2>
+<section class="bloco">
+  <h2>Criar Área</h2>
   <input id="areaNome" placeholder="Nome da área">
   <button onclick="criarArea()">Criar Área</button>
 </section>
 
-<hr>
+<!-- CADASTRO DE LOTE -->
+<section class="bloco">
+  <h2>Cadastrar Lote</h2>
+  <input id="loteNome" placeholder="Nome do lote">
+  <input id="loteQtd" type="number" min="1" placeholder="Qtd de gaylords">
+  <button onclick="criarLote()">Cadastrar Lote</button>
+</section>
 
-<section id="mapa"></section>
+<!-- LISTA DE LOTES -->
+<section class="bloco">
+  <h2>Lotes Cadastrados</h2>
+  <div id="listaLotes"></div>
+</section>
 
-<!-- MODAL -->
-<div id="modal" class="modal hidden">
-  <div class="modal-content">
-    <h3>Endereçar Gaylord</h3>
-
-    <label>Lote</label>
-    <select id="modalLote"></select>
-
-    <label>RZ (obrigatório)</label>
-    <input id="modalRz">
-
-    <label>Volume (opcional)</label>
-    <input id="modalVolume">
-
-    <button onclick="salvarEndereco()">Salvar</button>
-    <button onclick="removerEndereco()" class="danger">Remover</button>
-    <button onclick="fecharModal()">Cancelar</button>
-  </div>
-</div>
+<!-- MAPA -->
+<section class="bloco">
+  <h2>Mapa</h2>
+  <div id="mapa"></div>
+</section>
 
 <script src="script.js"></script>
 </body>
