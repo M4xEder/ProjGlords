@@ -16,7 +16,7 @@ function salvarTudo() {
 }
 
 function gerarCor() {
-  return `hsl(${Math.floor(Math.random() * 360)}, 70%, 70%)`;
+  return `hsl(${Math.floor(Math.random() * 360)},70%,70%)`;
 }
 
 // =======================
@@ -272,8 +272,17 @@ function contarGaylordsDoLote(lote) {
 // ALTERAR / EXCLUIR LOTE
 // =======================
 function alterarQtdLote(nome) {
-  const novo = parseInt(prompt('Nova quantidade de gaylords', lotesCadastrados[nome].total));
-  if(!novo || novo < 1) return;
+  const alocados = contarGaylordsDoLote(nome);
+  const atual = lotesCadastrados[nome].total;
+
+  let novo = parseInt(prompt(`Alterar quantidade de gaylords do lote "${nome}"\nAlocados atualmente: ${alocados}\nQuantidade atual: ${atual}`, atual));
+  if (!novo || novo < 1) return;
+
+  if (novo < alocados) {
+    alert(`Não é possível reduzir para ${novo}. Existem ${alocados} gaylords alocadas!`);
+    return;
+  }
+
   lotesCadastrados[nome].total = novo;
   salvarTudo();
   renderLotes();
@@ -291,7 +300,7 @@ function excluirLote(nome) {
 }
 
 // =======================
-// BUSCA COM DESTAQUE E ROLL
+// BUSCA COM DESTAQUE
 // =======================
 function buscar() {
   const termo = document.getElementById('buscaInput').value.trim().toLowerCase();
