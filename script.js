@@ -1,240 +1,388 @@
-// ================= ESTADO =================
-let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
+// ======================
+// ESTADO GLOBAL
+// ======================
+let areas = JSON.parse(localStorage.getItem('areas')) || [];
 let lotes = JSON.parse(localStorage.getItem('lotes')) || {};
-let historico = JSON.parse(localStorage.getItem('historico')) || [];
+let historicoExpedidos = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
+
 let posicaoAtual = null;
 
-// ================= ELEMENTOS =================
-const mapaDiv = document.getElementById('mapa');
-const listaLotes = document.getElementById('listaLotes');
-const historicoDiv = document.getElementById('historico');
-
-const loteNome = document.getElementById('loteNome');
-const loteQtd = document.getElementById('loteQtd');
-const areaNome = document.getElementById('areaNome');
-
-const modal = document.getElementById('modal');
-const modalLote = document.getElementById('modalLote');
-const modalRz = document.getElementById('modalRz');
-const modalVolume = document.getElementById('modalVolume');
-
-// ================= UTIL =================
-const gerarCor = () => `hsl(${Math.random()*360},70%,70%)`;
-const salvar = () => {
-  localStorage.setItem('mapa', JSON.stringify(mapa));
+// ======================
+// STORAGE
+// ======================
+function salvar() {
+  localStorage.setItem('areas', JSON.stringify(areas));
   localStorage.setItem('lotes', JSON.stringify(lotes));
-  localStorage.setItem('historico', JSON.stringify(historico));
-};
+  localStorage.setItem('historicoExpedidos', JSON.stringify(historicoExpedidos));
+}
 
-const alocadosLote = lote =>
-  mapa.flatMap(a=>a.ruas.flatMap(r=>r.posicoes))
-      .filter(p=>p && p.lote===lote).length;
+// ======================
+// UTIL
+// ======================
+function gerarCor() {
+  return `hsl(${Math.random() * 360},70%,65%)`;
+}
 
-// ================= LOTES =================
-document.getElementById('btnCriarLote').onclick = () => {
-  if (!loteNome.value || loteQtd.value <= 0) return;
-  lotes[loteNome.value] = { total: +loteQtd.value, cor: gerarCor() };
-  loteNome.value = loteQtd.value = '';
-  salvar(); renderLotes(); renderMapa();
-};
+function contarAlocados(lote) {
+  let total = 0;
+  areas.forEach(a =>
+    a.ruas.forEach(r =>
+      r.posicoes.forEach(p => {
+        if (p && p.lote === lote) total++;
+      })
+    )
+  );
+  return total;
+}
 
-function renderLotes() {
-  listaLotes.innerHTML = '';
-  Object.entries(lotes).forEach(([nome, d]) => {
-    const usado = alocadosLote(nome);
-    const div = document.createElement('div');
-    div.className = 'lote-item';
-    div.innerHTML = `
-      <span class="lote-cor" style="background:${d.cor}"></span>
-      ${nome} (${usado}/${d.total})
+// ======================
+// LOTES
+// ======================
+function cadastrarLote() {
+  const nome = document.getElementById('loteNome').value.trim();
+  const total = Number(document.getElementById('loteTotal').value);
+
+  if (!nome || total <= 0) {
+    alert('Informe nome e quantidade válida');
+    return;
+  }
+
+  if (lotes[nome]) {
+    alert('Lote já existe');
+    return;
+  }
+
+  lotes[nome] = {
+    total,
+    cor: gerarCor()
+  };
+
+  document.getElementById('loteNome').value = '';
+  document.getElementById('loteTotal').value = '';
+
+  salvar();
+  renderLotes();
+}
+
+function excluirLote(nome) {
+  if (contarAlocados(nome) > 0) {
+    alert('Não é possível excluir lote com gaylords alocadas');
+    return;
+  }
+
+  if (!confirm(`Excluir lote ${nome}?`)) return;
+
+  delete lotes[nome];
+  salvar();
+  renderLotes();
+}
+
+function alterarQuantidadeLote(nome) {
+  const novoTotal = Number(prompt('Nova quantidade total'));
+  if (novoTotal <= 0) return;
+
+  const usados = contarAlocados(nome);
+  if (novoTotal < usados) {
+    alert(`Já existem ${usados} alocados`);
+    return;
+  }
+
+  lotes[nome].total = novoTotal;
+  salvar();
+  renderLotes();
+}
+
+// ======================
+// ÁREAS / RUAS
+// ======================
+function criarArea() {
+  const nome = document.getElementById('areaNome').value.trim();
+  if (!nome) return;
+
+  areas.push({ nome, ruas: [] });
+  document.getElementById('areaNome').value = '';
+  salvar();
+  renderAreas();
+}
+
+function excluirArea(index) {
+  const temOcupado = areas[index].ruas.some(r =>
+    r.posicoes.some(p => p)
+  );
+
+  if (temOcupado) {
+    alert('Área possui gaylords alocadas');
+    return;
+  }
+
+  if (!confirm('Excluir área?')) return;
+
+  areas.splice(index, 1);
+  salvar();
+  renderAreas();
+}
+
+function criarRua(areaIndex) {
+  const nome = prompt('Nome da rua');
+  const qtd = Number(prompt('Quantidade de endereços'));
+
+  if (!nome || qtd <= 0) return;
+
+  areas[areaIndex].ruas.push({
+    nome,
+    posicoes: Array(qtd).fill(null)
+  });
+
+  salvar();
+  renderAreas();
+}
+
+function excluirRua(a, r) {
+  const temOcupado = areas[a].ruas[r].posicoes.some(p => p);
+  if (temOcupado) {
+    alert('Rua possui gaylords alocadas');
+    return;
+  }
+
+  if (!confirm('Excluir rua?')) return;
+
+  areas[a].ruas.splice(r, 1);
+  salvar();
+  renderAreas();
+}
+
+// ======================
+// RENDER
+// ======================
+function renderAreas() {
+  const container = document.getElementById('mapa');
+  container.innerHTML = '';
+
+  areas.forEach((area, a) => {
+    const areaDiv = document.createElement('div');
+    areaDiv.className = 'area';
+
+    areaDiv.innerHTML = `
+      <h3>${area.nome}
+        <button onclick="excluirArea(${a})">Excluir Área</button>
+      </h3>
     `;
 
-    const editar = document.createElement('button');
-    editar.textContent = 'Editar';
-    editar.onclick = () => {
-      const nova = Number(prompt('Nova quantidade:', d.total));
-      if (nova < usado) return alert('Quantidade menor que alocadas');
-      lotes[nome].total = nova;
-      salvar(); renderLotes();
-    };
+    area.ruas.forEach((rua, r) => {
+      const ruaDiv = document.createElement('div');
+      ruaDiv.className = 'rua';
 
-    const excluir = document.createElement('button');
-    excluir.textContent = 'Excluir';
-    excluir.className = 'danger';
-    excluir.onclick = () => {
-      if (usado > 0) return alert('Lote em uso');
-      delete lotes[nome];
-      salvar(); renderLotes(); renderMapa();
-    };
+      ruaDiv.innerHTML = `
+        <strong>${rua.nome}</strong>
+        <button onclick="excluirRua(${a},${r})">Excluir Rua</button>
+      `;
 
-    const expedir = document.createElement('button');
-    expedir.textContent = '🚚';
-    expedir.onclick = () => expedirLote(nome);
+      const posDiv = document.createElement('div');
+      posDiv.className = 'posicoes';
 
-    div.append(editar, excluir, expedir);
-    listaLotes.appendChild(div);
-  });
-}
+      rua.posicoes.forEach((pos, p) => {
+        const d = document.createElement('div');
+        d.className = 'posicao';
 
-// ================= ÁREA / RUA =================
-document.getElementById('btnCriarArea').onclick = () => {
-  if (!areaNome.value) return;
-  mapa.push({ nome: areaNome.value, ruas: [] });
-  areaNome.value = '';
-  salvar(); renderMapa();
-};
-
-function renderMapa() {
-  mapaDiv.innerHTML = '';
-  mapa.forEach((a, ai) => {
-    const ad = document.createElement('div');
-    ad.className = 'area';
-    ad.innerHTML = `<strong>${a.nome}</strong>`;
-
-    const btnExcluirArea = document.createElement('button');
-    btnExcluirArea.textContent = 'Excluir Área';
-    btnExcluirArea.className = 'danger';
-    btnExcluirArea.onclick = () => {
-      if (a.ruas.some(r=>r.posicoes.some(p=>p)))
-        return alert('Área contém gaylords');
-      mapa.splice(ai,1);
-      salvar(); renderMapa();
-    };
-
-    ad.appendChild(btnExcluirArea);
-
-    a.ruas.forEach((r, ri) => {
-      const rd = document.createElement('div');
-      rd.className = 'rua';
-      rd.innerHTML = `Rua ${r.nome}`;
-
-      const btnExcluirRua = document.createElement('button');
-      btnExcluirRua.textContent = 'Excluir Rua';
-      btnExcluirRua.className = 'danger';
-      btnExcluirRua.onclick = () => {
-        if (r.posicoes.some(p=>p))
-          return alert('Rua contém gaylords');
-        a.ruas.splice(ri,1);
-        salvar(); renderMapa();
-      };
-
-      rd.appendChild(btnExcluirRua);
-
-      const pd = document.createElement('div');
-      pd.className = 'posicoes';
-
-      r.posicoes.forEach((p,pi)=>{
-        const d=document.createElement('div');
-        d.className='posicao';
-        if(p){
-          d.classList.add('ocupada');
-          d.style.background=lotes[p.lote]?.cor;
-          d.dataset.lote=p.lote;
-          d.dataset.rz=p.rz;
-          d.dataset.volume=p.volume||'';
+        if (pos) {
+          d.style.background = lotes[pos.lote]?.cor || '#ccc';
+          d.dataset.lote = pos.lote;
+          d.dataset.rz = pos.rz;
+          d.dataset.volume = pos.volume || '';
         }
-        d.onclick=()=>abrirModal(ai,ri,pi);
-        pd.appendChild(d);
+
+        d.onclick = () => abrirModal(a, r, p);
+        posDiv.appendChild(d);
       });
 
-      rd.appendChild(pd);
-      ad.appendChild(rd);
+      ruaDiv.appendChild(posDiv);
+      areaDiv.appendChild(ruaDiv);
     });
 
-    const btnRua=document.createElement('button');
-    btnRua.textContent='Adicionar Rua';
-    btnRua.onclick=()=>{
-      const n=prompt('Nome da rua');
-      const q=Number(prompt('Qtd endereços'));
-      if(n&&q>0){a.ruas.push({nome:n,posicoes:Array(q).fill(null)});salvar();renderMapa();}
-    };
+    const btnRua = document.createElement('button');
+    btnRua.textContent = 'Adicionar Rua';
+    btnRua.onclick = () => criarRua(a);
 
-    ad.appendChild(btnRua);
-    mapaDiv.appendChild(ad);
+    areaDiv.appendChild(btnRua);
+    container.appendChild(areaDiv);
   });
 }
 
-// ================= MODAL =================
-function abrirModal(a,r,p){
-  posicaoAtual={a,r,p};
-  modalLote.innerHTML='<option value="">Selecione</option>';
-  Object.keys(lotes).forEach(l=>modalLote.innerHTML+=`<option>${l}</option>`);
-  modal.classList.remove('hidden');
-}
+function renderLotes() {
+  const div = document.getElementById('lotesAtivos');
+  div.innerHTML = '';
 
-function fecharModal(){ modal.classList.add('hidden'); }
+  Object.entries(lotes).forEach(([nome, data]) => {
+    const usados = contarAlocados(nome);
 
-document.getElementById('btnSalvarEndereco').onclick=()=>{
-  const {a,r,p}=posicaoAtual;
-  if(mapa[a].ruas[r].posicoes[p])return alert('Ocupado');
-  if(!modalLote.value||!modalRz.value)return alert('RZ obrigatório');
-  if(alocadosLote(modalLote.value)>=lotes[modalLote.value].total)
-    return alert('Lote atingiu limite');
-  mapa[a].ruas[r].posicoes[p]={lote:modalLote.value,rz:modalRz.value,volume:modalVolume.value};
-  salvar();fecharModal();renderMapa();renderLotes();
-};
-
-document.getElementById('btnRemoverEndereco').onclick=()=>{
-  const {a,r,p}=posicaoAtual;
-  mapa[a].ruas[r].posicoes[p]=null;
-  salvar();fecharModal();renderMapa();renderLotes();
-};
-
-// ================= BUSCA =================
-function buscar(){
-  limparBusca();
-  const t=document.getElementById('buscaInput').value.toLowerCase();
-  document.querySelectorAll('.posicao').forEach(p=>{
-    if(
-      p.dataset.lote?.toLowerCase().includes(t)||
-      p.dataset.rz?.toLowerCase().includes(t)||
-      p.dataset.volume?.toLowerCase().includes(t)
-    ) p.classList.add('highlight');
-  });
-}
-function limparBusca(){
-  document.querySelectorAll('.posicao.highlight').forEach(p=>p.classList.remove('highlight'));
-}
-
-// ================= EXPEDIÇÃO =================
-function expedirLote(lote){
-  const total=lotes[lote].total;
-  const usados=alocadosLote(lote);
-  if(!usados)return alert('Nada alocado');
-  let obs='Expedição completa';
-  if(usados<total&&!confirm('Expedição parcial?'))return;
-  if(usados<total)obs=`Parcial ${usados}/${total}`;
-
-  const itens=[];
-  mapa.forEach(a=>a.ruas.forEach(r=>r.posicoes.forEach((p,i)=>{
-    if(p&&p.lote===lote){itens.push(p);r.posicoes[i]=null;}
-  })));
-
-  historico.push({
-    lote,usados,obs,
-    data:new Date().toLocaleString(),
-    itens
-  });
-
-  delete lotes[lote];
-  salvar();renderMapa();renderLotes();renderHistorico();
-}
-
-function renderHistorico(){
-  historicoDiv.innerHTML='';
-  historico.forEach(h=>{
-    const d=document.createElement('div');
-    d.className='historico-item';
-    d.innerHTML=`<strong>${h.lote}</strong><br>${h.obs}<br>${h.data}`;
-    const b=document.createElement('button');
-    b.textContent='Ver RZ';
-    b.onclick=()=>alert(h.itens.map(i=>`${i.rz} (${i.volume||'-'})`).join('\n'));
-    d.appendChild(b);
-    historicoDiv.appendChild(d);
+    div.innerHTML += `
+      <div class="lote-card">
+        <strong>${nome}</strong><br>
+        ${usados} / ${data.total}
+        <div class="acoes">
+          <button onclick="alterarQuantidadeLote('${nome}')">Editar</button>
+          <button onclick="excluirLote('${nome}')">Excluir</button>
+          <button onclick="expedirLote('${nome}')">Expedir</button>
+        </div>
+      </div>
+    `;
   });
 }
 
-// ================= INIT =================
-renderMapa();
+// ======================
+// MODAL
+// ======================
+function abrirModal(a, r, p) {
+  posicaoAtual = { a, r, p };
+  const pos = areas[a].ruas[r].posicoes[p];
+
+  document.getElementById('modal').classList.remove('hidden');
+
+  document.getElementById('modalRz').value = pos?.rz || '';
+  document.getElementById('modalVolume').value = pos?.volume || '';
+
+  const select = document.getElementById('modalLote');
+  select.innerHTML = '<option value="">Selecione</option>';
+
+  Object.keys(lotes).forEach(l => {
+    const usados = contarAlocados(l);
+    if (usados < lotes[l].total || pos?.lote === l) {
+      select.innerHTML += `<option value="${l}" ${pos?.lote === l ? 'selected' : ''}>${l}</option>`;
+    }
+  });
+}
+
+function fecharModal() {
+  document.getElementById('modal').classList.add('hidden');
+}
+
+function salvarEndereco() {
+  const lote = document.getElementById('modalLote').value;
+  const rz = document.getElementById('modalRz').value.trim();
+  const volume = document.getElementById('modalVolume').value.trim();
+
+  if (!rz) {
+    alert('RZ é obrigatório');
+    return;
+  }
+
+  const pos = areas[posicaoAtual.a].ruas[posicaoAtual.r].posicoes[posicaoAtual.p];
+
+  if (pos && pos.lote && pos.lote !== lote) {
+    alert('Endereço já ocupado');
+    return;
+  }
+
+  areas[posicaoAtual.a].ruas[posicaoAtual.r].posicoes[posicaoAtual.p] = {
+    lote,
+    rz,
+    volume
+  };
+
+  salvar();
+  fecharModal();
+  renderAreas();
+  renderLotes();
+}
+
+function removerEndereco() {
+  areas[posicaoAtual.a].ruas[posicaoAtual.r].posicoes[posicaoAtual.p] = null;
+  salvar();
+  fecharModal();
+  renderAreas();
+  renderLotes();
+}
+
+// ======================
+// BUSCA
+// ======================
+function buscar() {
+  const termo = document.getElementById('busca').value.toLowerCase();
+  document.querySelectorAll('.posicao').forEach(p => p.classList.remove('highlight'));
+
+  if (!termo) return;
+
+  document.querySelectorAll('.posicao').forEach(p => {
+    if (
+      (p.dataset.lote || '').toLowerCase().includes(termo) ||
+      (p.dataset.rz || '').toLowerCase().includes(termo) ||
+      (p.dataset.volume || '').toLowerCase().includes(termo)
+    ) {
+      p.classList.add('highlight');
+    }
+  });
+}
+
+// ======================
+// EXPEDIÇÃO
+// ======================
+function expedirLote(nome) {
+  let expedidos = [];
+  let qtd = 0;
+
+  areas.forEach(a =>
+    a.ruas.forEach(r =>
+      r.posicoes.forEach((p, i) => {
+        if (p && p.lote === nome) {
+          expedidos.push({ rz: p.rz, volume: p.volume });
+          r.posicoes[i] = null;
+          qtd++;
+        }
+      })
+    )
+  );
+
+  if (qtd === 0) {
+    alert('Nenhuma gaylord alocada');
+    return;
+  }
+
+  lotes[nome].total -= qtd;
+  const parcial = lotes[nome].total > 0;
+
+  historicoExpedidos.push({
+    lote: nome,
+    quantidade: qtd,
+    restante: lotes[nome].total,
+    parcial,
+    data: new Date().toLocaleString(),
+    itens: expedidos
+  });
+
+  if (lotes[nome].total <= 0) delete lotes[nome];
+
+  salvar();
+  renderAreas();
+  renderLotes();
+  renderExpedidos();
+}
+
+// ======================
+// HISTÓRICO
+// ======================
+function renderExpedidos() {
+  const div = document.getElementById('lotesExpedidos');
+  if (!div) return;
+
+  div.innerHTML = '';
+
+  historicoExpedidos.forEach(h => {
+    div.innerHTML += `
+      <div class="lote-card">
+        <strong>${h.lote}</strong><br>
+        Expedidos: ${h.quantidade}<br>
+        ${h.parcial ? 'Parcial<br>' : ''}
+        ${h.data}
+        <details>
+          <summary>RZ / Volumes</summary>
+          ${h.itens.map(i => `RZ:${i.rz} Vol:${i.volume || '-'}`).join('<br>')}
+        </details>
+      </div>
+    `;
+  });
+}
+
+// ======================
+renderAreas();
 renderLotes();
-renderHistorico();
+renderExpedidos();
