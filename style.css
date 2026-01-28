@@ -4,42 +4,42 @@ body {
   padding: 20px;
 }
 
-h1, h2 {
-  margin-bottom: 8px;
+h1 {
+  margin-bottom: 20px;
 }
 
-.cadastro {
+.bloco {
   background: #fff;
-  padding: 10px;
-  border-radius: 6px;
+  padding: 12px;
   margin-bottom: 15px;
+  border-radius: 6px;
 }
 
-input, select {
+input {
   padding: 6px;
   margin: 4px 0;
-  width: 100%;
 }
 
 button {
   padding: 6px 10px;
-  margin-top: 5px;
   cursor: pointer;
 }
 
-#mapa {
-  margin-top: 20px;
+.area {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
 }
 
-.area {
-  background: #fff;
-  padding: 10px;
-  border-radius: 6px;
-  margin-bottom: 15px;
+.area-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .rua {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .posicoes {
@@ -49,38 +49,21 @@ button {
 }
 
 .posicao {
-  width: 30px;
-  height: 30px;
-  border: 1px solid #333;
-  cursor: pointer;
+  width: 25px;
+  height: 25px;
+  border: 1px solid #555;
+  background: #e5e7eb;
 }
 
-.posicao.ocupada {
-  background: #4ade80;
-}
-
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-content {
-  background: white;
-  padding: 15px;
-  border-radius: 6px;
-  width: 280px;
-}
-
-.hidden {
-  display: none;
+.lote-item {
+  background: #e5e7eb;
+  padding: 6px;
+  border-radius: 4px;
+  margin-bottom: 5px;
 }
 
 .danger {
-  background: #dc2626;
-  color: white;
+  background: #b91c1c;
+  color: #fff;
   border: none;
 }
