@@ -1,103 +1,80 @@
-/* ================= BODY ================= */
 body {
   font-family: Arial, sans-serif;
-  background: #f4f4f9;
-  margin: 0;
   padding: 20px;
-  color: #333;
+  background: #f5f5f5;
 }
 
-/* ================= HEADINGS ================= */
-h1, h2, h3 {
-  color: #1f2937;
+h1, h2 {
   margin-bottom: 10px;
 }
 
-/* ================= CADASTROS ================= */
-.cadastros {
-  background: #fff;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
 .cadastros input {
-  padding: 6px 8px;
   margin: 4px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
+  padding: 6px;
 }
 
-.cadastros button {
-  padding: 6px 12px;
-  margin: 4px;
-  border: none;
-  background: #2563eb;
-  color: white;
-  border-radius: 4px;
+button {
+  padding: 6px 10px;
   cursor: pointer;
+  margin-left: 4px;
 }
 
-.cadastros button:hover {
-  background: #1d4ed8;
-}
-
-/* ================= BUSCA ================= */
 .busca {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 15px;
-}
-
-.busca input {
-  flex: 1;
-  padding: 6px 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-.busca button {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  background: #2563eb;
-  color: white;
-}
-
-button.secondary {
-  background: #e5e7eb;
-  color: #333;
-  border: 1px solid #ccc;
-}
-
-button.secondary:hover {
-  background: #d1d5db;
-}
-
-.busca input:focus {
-  outline: 2px solid #2563eb;
-}
-
-/* ================= LOTES ATIVOS ================= */
-#lotesAtivos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
   margin-bottom: 20px;
+}
+
+#mapa {
+  margin-top: 20px;
+}
+
+.area {
+  background: #fff;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 6px;
+}
+
+.rua {
+  margin-top: 8px;
+}
+
+.posicoes {
+  display: flex;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.posicao {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #999;
+  cursor: pointer;
+}
+
+.posicao.ocupada {
+  border: 2px solid #000;
+}
+
+.posicao.highlight {
+  outline: 3px solid red;
+  animation: piscar 1s infinite;
+}
+
+@keyframes piscar {
+  0% { outline-color: red; }
+  50% { outline-color: yellow; }
+  100% { outline-color: red; }
 }
 
 .lote-card {
   background: #fff;
   padding: 10px;
   border-radius: 6px;
-  min-width: 180px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 10px;
 }
 
 .progress-bar {
-  background: #e5e7eb;
+  background: #ddd;
   height: 10px;
   border-radius: 4px;
   margin: 6px 0;
@@ -108,129 +85,42 @@ button.secondary:hover {
   border-radius: 4px;
 }
 
-/* ================= MAPA ================= */
-#mapa {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.area {
-  background: #fff;
-  padding: 10px;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.area-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.rua {
-  margin-top: 10px;
-}
-
-.posicoes {
-  display: flex;
-  gap: 4px;
-  margin-top: 5px;
-  flex-wrap: wrap;
-}
-
-.posicao {
-  width: 30px;
-  height: 30px;
-  border: 1px solid #999;
-  cursor: pointer;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-}
-
-.posicao.ocupada {
-  border: 2px solid #000;
-}
-
-.posicao.highlight {
-  outline: 3px solid #facc15;
-  animation: piscar 1s infinite;
-}
-
-@keyframes piscar {
-  0% { outline-color: #facc15; }
-  50% { outline-color: #f97316; }
-  100% { outline-color: #facc15; }
-}
-
-/* ================= EXPEDIDOS ================= */
-#lotesExpedidos {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.historico-item {
-  background: #fff;
-  padding: 10px;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-/* ================= MODAL ================= */
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
 }
 
 .modal-content {
   background: #fff;
   padding: 20px;
-  border-radius: 8px;
+  border-radius: 6px;
   width: 300px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.modal-content input, 
-.modal-content select {
-  padding: 6px 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  width: 100%;
-}
-
-.modal-content label {
-  font-weight: bold;
-}
-
-.modal .acoes {
-  display: flex;
-  gap: 6px;
-  justify-content: space-between;
-  margin-top: 10px;
-}
-
-.modal button {
-  padding: 6px 12px;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
-}
-
-.modal button:hover {
-  opacity: 0.9;
 }
 
 .hidden {
   display: none;
+}
+
+.acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.historico-item {
+  background: #f9f9f9;
+  border: 1px solid #ccc;
+  padding: 8px;
+  margin-bottom: 6px;
+  border-radius: 4px;
+}
+
+.danger {
+  background: #b91c1c;
+  color: white;
+  border: none;
 }
