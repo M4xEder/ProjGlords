@@ -1,4 +1,9 @@
 // =======================
+// DOM
+// =======================
+const mapaDiv = document.getElementById('mapa');
+
+// =======================
 // ESTADO GLOBAL
 // =======================
 let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
@@ -149,11 +154,10 @@ function renderMapa() {
 }
 
 // =======================
-// MODAL (ENDEREÇO)
+// MODAL
 // =======================
 function abrirModal(a, r, p) {
   posicaoAtual = { a, r, p };
-
   const pos = mapa[a].ruas[r].posicoes[p];
 
   modalRz.value = pos?.rz || '';
