@@ -1,16 +1,22 @@
+/* =======================
+   BASE
+======================= */
 body {
   font-family: Arial, sans-serif;
   background: #f4f4f4;
   padding: 20px;
 }
 
-h1, h2 {
+h1, h2, h3 {
   margin-bottom: 10px;
 }
 
+/* =======================
+   FORMULÁRIOS
+======================= */
 .cadastro {
   background: #fff;
-  padding: 10px;
+  padding: 12px;
   margin-bottom: 15px;
   border-radius: 6px;
 }
@@ -19,6 +25,7 @@ input, select {
   padding: 6px;
   margin: 4px 0;
   width: 100%;
+  box-sizing: border-box;
 }
 
 button {
@@ -27,31 +34,45 @@ button {
   cursor: pointer;
 }
 
-.danger {
-  background: #b91c1c;
-  color: #fff;
-  border: none;
-}
-
+/* =======================
+   MAPA
+======================= */
 #mapa {
   margin-top: 20px;
 }
 
 .area {
   background: #fff;
-  padding: 10px;
+  padding: 12px;
   margin-bottom: 15px;
   border-radius: 6px;
 }
 
-.rua {
-  margin-top: 10px;
+.area > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
+.rua {
+  margin-top: 10px;
+  padding-left: 10px;
+}
+
+.rua > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* =======================
+   POSIÇÕES
+======================= */
 .posicoes {
   display: flex;
-  gap: 5px;
-  margin-top: 5px;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
 }
 
 .posicao {
@@ -59,19 +80,51 @@ button {
   height: 30px;
   border: 1px solid #999;
   cursor: pointer;
+  background: #fff;
+  position: relative;
 }
 
 .posicao.ocupada {
-  background: #333;
+  background: #444;
 }
 
+/* =======================
+   DESTAQUE DA BUSCA
+======================= */
+.posicao.destaque {
+  outline: 3px solid red;
+  z-index: 1;
+  animation: piscar 1s infinite;
+}
+
+@keyframes piscar {
+  0% { outline-color: red; }
+  50% { outline-color: yellow; }
+  100% { outline-color: red; }
+}
+
+/* =======================
+   LOTES
+======================= */
 .lote-item {
   background: #eef;
-  padding: 5px;
+  padding: 6px;
   margin-bottom: 4px;
   border-radius: 4px;
 }
 
+/* =======================
+   BOTÕES
+======================= */
+.danger {
+  background: #b91c1c;
+  color: #fff;
+  border: none;
+}
+
+/* =======================
+   MODAL
+======================= */
 .modal {
   position: fixed;
   inset: 0;
@@ -79,6 +132,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 10; /* sempre acima do destaque */
 }
 
 .modal-content {
