@@ -1,15 +1,68 @@
-// ================= ESTADO =================
+// =======================
+// ESTADO GLOBAL
+// =======================
 let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
 let lotes = JSON.parse(localStorage.getItem('lotes')) || {};
-let posicaoAtual = null;
 
-// ================= SALVAR =================
+// =======================
+// UTIL
+// =======================
 function salvar() {
   localStorage.setItem('mapa', JSON.stringify(mapa));
   localStorage.setItem('lotes', JSON.stringify(lotes));
 }
 
-// ================= LOTE =================
+// =======================
+// ÁREA
+// =======================
+function criarArea() {
+  const nome = areaNome.value.trim();
+  if (!nome) {
+    alert('Informe o nome da área');
+    return;
+  }
+
+  mapa.push({ nome, ruas: [] });
+  areaNome.value = '';
+  salvar();
+  renderMapa();
+}
+
+function excluirArea(index) {
+  if (!confirm('Excluir esta área?')) return;
+  mapa.splice(index, 1);
+  salvar();
+  renderMapa();
+}
+
+// =======================
+// RUA
+// =======================
+function criarRua(areaIndex) {
+  const nome = prompt('Nome da rua');
+  const qtd = Number(prompt('Quantidade de endereços'));
+
+  if (!nome || qtd <= 0) return;
+
+  mapa[areaIndex].ruas.push({
+    nome,
+    posicoes: Array(qtd).fill(null)
+  });
+
+  salvar();
+  renderMapa();
+}
+
+function excluirRua(areaIndex, ruaIndex) {
+  if (!confirm('Excluir esta rua?')) return;
+  mapa[areaIndex].ruas.splice(ruaIndex, 1);
+  salvar();
+  renderMapa();
+}
+
+// =======================
+// LOTE
+// =======================
 function criarLote() {
   const nome = loteNome.value.trim();
   const qtd = Number(loteQtd.value);
@@ -20,63 +73,53 @@ function criarLote() {
   }
 
   lotes[nome] = { total: qtd };
+
   loteNome.value = '';
   loteQtd.value = '';
-  salvar();
-  alert('Lote cadastrado');
-}
-
-// ================= ÁREA =================
-function criarArea() {
-  const nome = areaNome.value.trim();
-  if (!nome) return alert('Nome da área obrigatório');
-
-  mapa.push({ nome, ruas: [] });
-  areaNome.value = '';
-  salvar();
-  renderMapa();
-}
-
-// ================= RUA =================
-function criarRua(a) {
-  const nome = prompt('Nome da rua');
-  const qtd = Number(prompt('Quantidade de endereços'));
-
-  if (!nome || qtd <= 0) return;
-
-  mapa[a].ruas.push({
-    nome,
-    posicoes: Array(qtd).fill(null)
-  });
 
   salvar();
-  renderMapa();
+  renderLotes();
 }
 
-// ================= MAPA =================
+// =======================
+// RENDER
+// =======================
 function renderMapa() {
+  mapaDiv = document.getElementById('mapa');
   mapaDiv.innerHTML = '';
 
   mapa.forEach((area, a) => {
     const areaDiv = document.createElement('div');
     areaDiv.className = 'area';
-    areaDiv.innerHTML = `<strong>${area.nome}</strong>`;
+
+    const header = document.createElement('div');
+    header.className = 'area-header';
+    header.innerHTML = `<strong>${area.nome}</strong>`;
+
+    const btnExcluir = document.createElement('button');
+    btnExcluir.textContent = 'Excluir Área';
+    btnExcluir.className = 'danger';
+    btnExcluir.onclick = () => excluirArea(a);
+
+    header.appendChild(btnExcluir);
+    areaDiv.appendChild(header);
 
     area.ruas.forEach((rua, r) => {
       const ruaDiv = document.createElement('div');
       ruaDiv.className = 'rua';
-      ruaDiv.innerHTML = `Rua ${rua.nome}`;
+
+      ruaDiv.innerHTML = `
+        Rua ${rua.nome}
+        <button class="danger" onclick="excluirRua(${a},${r})">Excluir Rua</button>
+      `;
 
       const posDiv = document.createElement('div');
       posDiv.className = 'posicoes';
 
-      rua.posicoes.forEach((pos, p) => {
-        const d = document.createElement('div');
-        d.className = 'posicao';
-        if (pos) d.classList.add('ocupada');
-
-        d.onclick = () => abrirModal(a, r, p);
-        posDiv.appendChild(d);
+      rua.posicoes.forEach(() => {
+        const p = document.createElement('div');
+        p.className = 'posicao';
+        posDiv.appendChild(p);
       });
 
       ruaDiv.appendChild(posDiv);
@@ -92,63 +135,28 @@ function renderMapa() {
   });
 }
 
-// ================= MODAL =================
-function abrirModal(a, r, p) {
-  posicaoAtual = { a, r, p };
-  const pos = mapa[a].ruas[r].posicoes[p];
+function renderLotes() {
+  listaLotes.innerHTML = '';
 
-  modalLote.innerHTML = '<option value="">Selecione</option>';
-  Object.keys(lotes).forEach(l => {
-    const opt = document.createElement('option');
-    opt.value = l;
-    opt.textContent = l;
-    modalLote.appendChild(opt);
-  });
-
-  modalLote.value = pos?.lote || '';
-  modalRz.value = pos?.rz || '';
-  modalVolume.value = pos?.volume || '';
-
-  modal.classList.remove('hidden');
-}
-
-function fecharModal() {
-  modal.classList.add('hidden');
-}
-
-// ================= ENDEREÇAR =================
-function salvarEndereco() {
-  const lote = modalLote.value;
-  const rz = modalRz.value.trim();
-
-  if (!lote) return alert('Selecione um lote');
-  if (!rz) return alert('RZ obrigatório');
-
-  const { a, r, p } = posicaoAtual;
-
-  if (mapa[a].ruas[r].posicoes[p]) {
-    alert('Endereço já ocupado');
+  const nomes = Object.keys(lotes);
+  if (nomes.length === 0) {
+    listaLotes.innerHTML = '<p>Nenhum lote cadastrado</p>';
     return;
   }
 
-  mapa[a].ruas[r].posicoes[p] = {
-    lote,
-    rz,
-    volume: modalVolume.value || null
-  };
-
-  salvar();
-  fecharModal();
-  renderMapa();
+  nomes.forEach(nome => {
+    const div = document.createElement('div');
+    div.className = 'lote-item';
+    div.innerHTML = `
+      <strong>${nome}</strong><br>
+      Quantidade: ${lotes[nome].total}
+    `;
+    listaLotes.appendChild(div);
+  });
 }
 
-function removerEndereco() {
-  const { a, r, p } = posicaoAtual;
-  mapa[a].ruas[r].posicoes[p] = null;
-  salvar();
-  fecharModal();
-  renderMapa();
-}
-
-// ================= INIT =================
+// =======================
+// INIT
+// =======================
 renderMapa();
+renderLotes();
