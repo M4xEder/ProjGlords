@@ -2,18 +2,21 @@ let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
 let lotes = JSON.parse(localStorage.getItem('lotes')) || {};
 let posicaoAtual = null;
 
-// ---------- STORAGE ----------
+// ================= STORAGE =================
 function salvar() {
   localStorage.setItem('mapa', JSON.stringify(mapa));
   localStorage.setItem('lotes', JSON.stringify(lotes));
 }
 
-// ---------- LOTES ----------
-document.getElementById('btnCriarLote').onclick = () => {
+// ================= LOTES =================
+btnCriarLote.onclick = () => {
   const nome = loteNome.value.trim();
   const qtd = Number(loteQtd.value);
 
-  if (!nome || qtd <= 0) return alert('Dados inválidos');
+  if (!nome || qtd <= 0) {
+    alert('Informe nome e quantidade');
+    return;
+  }
 
   lotes[nome] = { total: qtd };
   loteNome.value = '';
@@ -30,10 +33,10 @@ function renderLotes() {
   );
 }
 
-// ---------- ÁREA ----------
-document.getElementById('btnCriarArea').onclick = () => {
+// ================= ÁREA =================
+btnCriarArea.onclick = () => {
   const nome = areaNome.value.trim();
-  if (!nome) return;
+  if (!nome) return alert('Informe o nome da área');
 
   mapa.push({ nome, ruas: [] });
   areaNome.value = '';
@@ -42,10 +45,11 @@ document.getElementById('btnCriarArea').onclick = () => {
   renderMapa();
 };
 
-// ---------- RUA ----------
+// ================= RUA =================
 function criarRua(areaIndex) {
   const nome = prompt('Nome da rua');
-  const qtd = Number(prompt('Qtd de posições'));
+  const qtd = Number(prompt('Quantidade de endereços'));
+
   if (!nome || qtd <= 0) return;
 
   mapa[areaIndex].ruas.push({
@@ -57,18 +61,65 @@ function criarRua(areaIndex) {
   renderMapa();
 }
 
-// ---------- MAPA ----------
+// ================= VALIDAÇÕES =================
+function ruaTemGaylord(areaIndex, ruaIndex) {
+  return mapa[areaIndex].ruas[ruaIndex].posicoes.some(p => p !== null);
+}
+
+function areaTemGaylord(areaIndex) {
+  return mapa[areaIndex].ruas.some(rua =>
+    rua.posicoes.some(p => p !== null)
+  );
+}
+
+// ================= EXCLUIR =================
+function excluirRua(areaIndex, ruaIndex) {
+  if (ruaTemGaylord(areaIndex, ruaIndex)) {
+    alert('Não é possível excluir esta rua. Existem gaylords alocadas.');
+    return;
+  }
+
+  if (!confirm('Deseja excluir esta rua?')) return;
+
+  mapa[areaIndex].ruas.splice(ruaIndex, 1);
+  salvar();
+  renderMapa();
+}
+
+function excluirArea(areaIndex) {
+  if (areaTemGaylord(areaIndex)) {
+    alert('Não é possível excluir esta área. Existem gaylords alocadas.');
+    return;
+  }
+
+  if (!confirm('Deseja excluir esta área?')) return;
+
+  mapa.splice(areaIndex, 1);
+  salvar();
+  renderMapa();
+}
+
+// ================= MAPA =================
 function renderMapa() {
   mapaDiv.innerHTML = '';
+
   mapa.forEach((area, a) => {
     const areaDiv = document.createElement('div');
     areaDiv.className = 'area';
-    areaDiv.innerHTML = `<strong>${area.nome}</strong>`;
+
+    areaDiv.innerHTML = `
+      <strong>${area.nome}</strong>
+      <button onclick="excluirArea(${a})" class="danger">Excluir Área</button>
+    `;
 
     area.ruas.forEach((rua, r) => {
       const ruaDiv = document.createElement('div');
       ruaDiv.className = 'rua';
-      ruaDiv.innerHTML = `Rua ${rua.nome}`;
+
+      ruaDiv.innerHTML = `
+        Rua ${rua.nome}
+        <button onclick="excluirRua(${a},${r})" class="danger">Excluir Rua</button>
+      `;
 
       const posDiv = document.createElement('div');
       posDiv.className = 'posicoes';
@@ -93,7 +144,7 @@ function renderMapa() {
   });
 }
 
-// ---------- MODAL ----------
+// ================= MODAL =================
 function abrirModal(a, r, p) {
   posicaoAtual = { a, r, p };
   modal.classList.remove('hidden');
@@ -107,7 +158,10 @@ function abrirModal(a, r, p) {
 btnFecharModal.onclick = () => modal.classList.add('hidden');
 
 btnSalvarEndereco.onclick = () => {
-  if (!modalLote.value || !modalRz.value) return alert('Dados obrigatórios');
+  if (!modalLote.value || !modalRz.value) {
+    alert('Lote e RZ são obrigatórios');
+    return;
+  }
 
   mapa[posicaoAtual.a]
     .ruas[posicaoAtual.r]
@@ -132,7 +186,7 @@ btnRemoverEndereco.onclick = () => {
   renderMapa();
 };
 
-// ---------- INIT ----------
+// ================= INIT =================
 const mapaDiv = document.getElementById('mapa');
 renderLotes();
 renderMapa();
