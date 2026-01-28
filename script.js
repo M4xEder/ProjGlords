@@ -1,23 +1,20 @@
-// ================= ESTADO =================
+const mapaDiv = document.getElementById('mapa');
+
 let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
 let lotes = JSON.parse(localStorage.getItem('lotes')) || {};
 let posicaoAtual = null;
 
-// ================= STORAGE =================
 function salvar() {
   localStorage.setItem('mapa', JSON.stringify(mapa));
   localStorage.setItem('lotes', JSON.stringify(lotes));
 }
 
-// ================= LOTES =================
+/* LOTES */
 btnCriarLote.onclick = () => {
   const nome = loteNome.value.trim();
   const qtd = Number(loteQtd.value);
 
-  if (!nome || qtd <= 0) {
-    alert('Informe nome e quantidade');
-    return;
-  }
+  if (!nome || qtd <= 0) return alert('Dados inválidos');
 
   lotes[nome] = { total: qtd };
   loteNome.value = '';
@@ -29,20 +26,15 @@ btnCriarLote.onclick = () => {
 
 function renderLotes() {
   listaLotes.innerHTML = '';
-  Object.keys(lotes).forEach(lote => {
-    const div = document.createElement('div');
-    div.textContent = `${lote} (${lotes[lote].total})`;
-    listaLotes.appendChild(div);
-  });
+  Object.keys(lotes).forEach(l =>
+    listaLotes.innerHTML += `<div>${l} (${lotes[l].total})</div>`
+  );
 }
 
-// ================= ÁREA =================
+/* ÁREA */
 btnCriarArea.onclick = () => {
   const nome = areaNome.value.trim();
-  if (!nome) {
-    alert('Informe o nome da área');
-    return;
-  }
+  if (!nome) return;
 
   mapa.push({ nome, ruas: [] });
   areaNome.value = '';
@@ -51,14 +43,13 @@ btnCriarArea.onclick = () => {
   renderMapa();
 };
 
-// ================= RUA =================
-function criarRua(areaIndex) {
+/* RUA */
+function criarRua(a) {
   const nome = prompt('Nome da rua');
   const qtd = Number(prompt('Quantidade de endereços'));
-
   if (!nome || qtd <= 0) return;
 
-  mapa[areaIndex].ruas.push({
+  mapa[a].ruas.push({
     nome,
     posicoes: Array(qtd).fill(null)
   });
@@ -67,25 +58,24 @@ function criarRua(areaIndex) {
   renderMapa();
 }
 
-// ================= VALIDAÇÕES =================
+/* VALIDAÇÕES */
 function ruaTemGaylord(a, r) {
-  return mapa[a].ruas[r].posicoes.some(p => p !== null);
+  return mapa[a].ruas[r].posicoes.some(p => p);
 }
 
 function areaTemGaylord(a) {
   return mapa[a].ruas.some(rua =>
-    rua.posicoes.some(p => p !== null)
+    rua.posicoes.some(p => p)
   );
 }
 
-// ================= EXCLUSÃO =================
+/* EXCLUSÕES */
 function excluirRua(a, r) {
   if (ruaTemGaylord(a, r)) {
-    alert('Não é possível excluir a rua. Existem gaylords alocadas.');
+    alert('Rua possui gaylords alocadas');
     return;
   }
-
-  if (!confirm('Excluir esta rua?')) return;
+  if (!confirm('Excluir rua?')) return;
 
   mapa[a].ruas.splice(r, 1);
   salvar();
@@ -94,18 +84,17 @@ function excluirRua(a, r) {
 
 function excluirArea(a) {
   if (areaTemGaylord(a)) {
-    alert('Não é possível excluir a área. Existem gaylords alocadas.');
+    alert('Área possui gaylords alocadas');
     return;
   }
-
-  if (!confirm('Excluir esta área?')) return;
+  if (!confirm('Excluir área?')) return;
 
   mapa.splice(a, 1);
   salvar();
   renderMapa();
 }
 
-// ================= MAPA =================
+/* MAPA */
 function renderMapa() {
   mapaDiv.innerHTML = '';
 
@@ -113,40 +102,32 @@ function renderMapa() {
     const areaDiv = document.createElement('div');
     areaDiv.className = 'area';
 
-    // HEADER ÁREA
-    const areaHeader = document.createElement('div');
-    areaHeader.className = 'area-header';
+    const header = document.createElement('div');
+    header.className = 'area-header';
 
-    const titulo = document.createElement('strong');
-    titulo.textContent = area.nome;
+    header.innerHTML = `<strong>${area.nome}</strong>`;
+    const btnExcluir = document.createElement('button');
+    btnExcluir.textContent = 'Excluir Área';
+    btnExcluir.className = 'danger';
+    btnExcluir.onclick = () => excluirArea(a);
 
-    const btnExcluirArea = document.createElement('button');
-    btnExcluirArea.textContent = 'Excluir Área';
-    btnExcluirArea.className = 'danger';
-    btnExcluirArea.onclick = () => excluirArea(a);
+    header.appendChild(btnExcluir);
+    areaDiv.appendChild(header);
 
-    areaHeader.appendChild(titulo);
-    areaHeader.appendChild(btnExcluirArea);
-    areaDiv.appendChild(areaHeader);
-
-    // RUAS
     area.ruas.forEach((rua, r) => {
       const ruaDiv = document.createElement('div');
       ruaDiv.className = 'rua';
 
       const ruaHeader = document.createElement('div');
       ruaHeader.className = 'rua-header';
+      ruaHeader.textContent = `Rua ${rua.nome}`;
 
-      const ruaTitulo = document.createElement('span');
-      ruaTitulo.textContent = `Rua ${rua.nome}`;
+      const btnRua = document.createElement('button');
+      btnRua.textContent = 'Excluir Rua';
+      btnRua.className = 'danger';
+      btnRua.onclick = () => excluirRua(a, r);
 
-      const btnExcluirRua = document.createElement('button');
-      btnExcluirRua.textContent = 'Excluir Rua';
-      btnExcluirRua.className = 'danger';
-      btnExcluirRua.onclick = () => excluirRua(a, r);
-
-      ruaHeader.appendChild(ruaTitulo);
-      ruaHeader.appendChild(btnExcluirRua);
+      ruaHeader.appendChild(btnRua);
       ruaDiv.appendChild(ruaHeader);
 
       const posDiv = document.createElement('div');
@@ -163,33 +144,30 @@ function renderMapa() {
       areaDiv.appendChild(ruaDiv);
     });
 
-    const btnRua = document.createElement('button');
-    btnRua.textContent = 'Adicionar Rua';
-    btnRua.onclick = () => criarRua(a);
+    const btnNovaRua = document.createElement('button');
+    btnNovaRua.textContent = 'Adicionar Rua';
+    btnNovaRua.onclick = () => criarRua(a);
 
-    areaDiv.appendChild(btnRua);
+    areaDiv.appendChild(btnNovaRua);
     mapaDiv.appendChild(areaDiv);
   });
 }
 
-// ================= MODAL =================
+/* MODAL */
 function abrirModal(a, r, p) {
   posicaoAtual = { a, r, p };
   modal.classList.remove('hidden');
 
   modalLote.innerHTML = '<option value="">Selecione</option>';
   Object.keys(lotes).forEach(l =>
-    modalLote.innerHTML += `<option value="${l}">${l}</option>`
+    modalLote.innerHTML += `<option>${l}</option>`
   );
 }
 
 btnFecharModal.onclick = () => modal.classList.add('hidden');
 
 btnSalvarEndereco.onclick = () => {
-  if (!modalLote.value || !modalRz.value) {
-    alert('Lote e RZ são obrigatórios');
-    return;
-  }
+  if (!modalLote.value || !modalRz.value) return alert('Obrigatório');
 
   mapa[posicaoAtual.a]
     .ruas[posicaoAtual.r]
@@ -214,7 +192,6 @@ btnRemoverEndereco.onclick = () => {
   renderMapa();
 };
 
-// ================= INIT =================
-const mapaDiv = document.getElementById('mapa');
+/* INIT */
 renderLotes();
 renderMapa();
