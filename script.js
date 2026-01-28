@@ -9,6 +9,8 @@ const modal = document.getElementById('modal');
 const modalLote = document.getElementById('modalLote');
 const modalRz = document.getElementById('modalRz');
 const modalVolume = document.getElementById('modalVolume');
+const btnSalvar = document.getElementById('btnSalvar');
+const btnRemover = document.getElementById('btnRemover');
 
 // ===== UTIL =====
 function salvar() {
@@ -28,13 +30,13 @@ function criarArea() {
 }
 
 // ===== RUA =====
-function criarRua(areaIndex) {
+function criarRua(a) {
   const nome = prompt('Nome da rua');
   const qtd = Number(prompt('Quantidade de endereços'));
 
   if (!nome || qtd <= 0) return;
 
-  mapa[areaIndex].ruas.push({
+  mapa[a].ruas.push({
     nome,
     enderecos: Array(qtd).fill(null)
   });
@@ -55,15 +57,12 @@ function criarLote() {
   const nome = loteNome.value.trim();
   const qtd = Number(loteQtd.value);
 
-  if (!nome || qtd <= 0) {
-    return alert('Informe nome e quantidade');
-  }
+  if (!nome || qtd <= 0) return alert('Dados inválidos');
 
   lotes[nome] = { total: qtd };
   loteNome.value = '';
   loteQtd.value = '';
   salvar();
-  alert('Lote cadastrado');
 }
 
 // ===== MAPA =====
@@ -97,7 +96,6 @@ function renderMapa() {
       rua.enderecos.forEach((end, e) => {
         const d = document.createElement('div');
         d.className = 'posicao';
-
         if (end) d.classList.add('ocupada');
 
         d.onclick = () => abrirModal(a, r, e);
@@ -115,14 +113,38 @@ function renderMapa() {
 // ===== MODAL =====
 function abrirModal(a, r, e) {
   enderecoAtual = { a, r, e };
+  const end = mapa[a].ruas[r].enderecos[e];
 
   modalLote.innerHTML = '<option value="">Selecione</option>';
   Object.keys(lotes).forEach(l =>
     modalLote.innerHTML += `<option value="${l}">${l}</option>`
   );
 
-  modalRz.value = '';
-  modalVolume.value = '';
+  if (end) {
+    // endereço ocupado → somente remover
+    modalLote.value = end.lote;
+    modalRz.value = end.rz;
+    modalVolume.value = end.volume || '';
+
+    modalLote.disabled = true;
+    modalRz.disabled = true;
+    modalVolume.disabled = true;
+
+    btnSalvar.style.display = 'none';
+    btnRemover.style.display = 'block';
+  } else {
+    // endereço livre → endereçar
+    modalLote.disabled = false;
+    modalRz.disabled = false;
+    modalVolume.disabled = false;
+
+    modalLote.value = '';
+    modalRz.value = '';
+    modalVolume.value = '';
+
+    btnSalvar.style.display = 'block';
+    btnRemover.style.display = 'none';
+  }
 
   modal.classList.remove('hidden');
 }
@@ -143,6 +165,19 @@ function salvarEndereco() {
   mapa[enderecoAtual.a]
     .ruas[enderecoAtual.r]
     .enderecos[enderecoAtual.e] = { lote, rz, volume };
+
+  salvar();
+  fecharModal();
+  renderMapa();
+}
+
+// ===== REMOVER =====
+function removerEndereco() {
+  if (!confirm('Remover gaylord deste endereço?')) return;
+
+  mapa[enderecoAtual.a]
+    .ruas[enderecoAtual.r]
+    .enderecos[enderecoAtual.e] = null;
 
   salvar();
   fecharModal();
