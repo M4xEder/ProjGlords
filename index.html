@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Mapa de Gaylords</title>
+  <title>Mapa de Armazenamento de Gaylords</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -10,45 +10,71 @@
 
 <h1>Mapa de Armazenamento</h1>
 
+<!-- =======================
+     BUSCA
+======================= -->
 <section class="cadastro">
-  <h2>Cadastrar Lote</h2>
-  <input id="loteNome" placeholder="Nome do lote">
-  <input id="loteQtd" type="number" min="1" placeholder="Qtd de gaylords">
-  <button onclick="criarLote()">Cadastrar</button>
+  <h3>Buscar Gaylord</h3>
+  <input
+    type="text"
+    id="buscaInput"
+    placeholder="Buscar por lote, RZ ou volume"
+  >
+  <button onclick="buscar()">Buscar</button>
+  <button onclick="limparBusca()">Limpar</button>
 </section>
 
+<!-- =======================
+     CADASTRO DE LOTE
+======================= -->
 <section class="cadastro">
-  <h2>Lotes Cadastrados</h2>
+  <h3>Cadastrar Lote</h3>
+  <input id="loteNome" placeholder="Nome do lote">
+  <input id="loteQtd" type="number" min="1" placeholder="Quantidade de gaylords">
+  <button onclick="criarLote()">Cadastrar Lote</button>
+
   <div id="listaLotes"></div>
 </section>
 
+<!-- =======================
+     CADASTRO DE ÁREA
+======================= -->
 <section class="cadastro">
-  <h2>Criar Área</h2>
+  <h3>Criar Área</h3>
   <input id="areaNome" placeholder="Nome da área">
-  <button onclick="criarArea()">Criar Área</button>
+  <button onclick="criarArea()">Adicionar Área</button>
 </section>
 
-<div id="mapa"></div>
+<!-- =======================
+     MAPA
+======================= -->
+<section id="mapa"></section>
 
-<!-- MODAL -->
+<!-- =======================
+     MODAL
+======================= -->
 <div id="modal" class="modal hidden">
   <div class="modal-content">
-    <h3>Endereçar Gaylord</h3>
+    <h3 id="infoEndereco"></h3>
 
-    <p id="infoEndereco"></p>
+    <label>
+      Lote
+      <select id="modalLote"></select>
+    </label>
 
-    <label>Lote *</label>
-    <select id="modalLote"></select>
+    <label>
+      RZ (obrigatório)
+      <input id="modalRz">
+    </label>
 
-    <label>RZ *</label>
-    <input id="modalRz" placeholder="Identificação RZ">
-
-    <label>Volume (opcional)</label>
-    <input id="modalVolume" placeholder="Volume">
+    <label>
+      Volume (opcional)
+      <input id="modalVolume">
+    </label>
 
     <div class="acoes">
       <button onclick="salvarEndereco()">Salvar</button>
-      <button class="danger" onclick="removerEndereco()">Remover Gaylord</button>
+      <button onclick="removerEndereco()">Remover Gaylord</button>
       <button onclick="fecharModal()">Cancelar</button>
     </div>
   </div>
