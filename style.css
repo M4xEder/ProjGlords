@@ -4,10 +4,6 @@ body {
   padding: 20px;
 }
 
-h1 {
-  margin-bottom: 20px;
-}
-
 .bloco {
   background: #fff;
   padding: 12px;
@@ -15,7 +11,7 @@ h1 {
   border-radius: 6px;
 }
 
-input {
+input, select {
   padding: 6px;
   margin: 4px 0;
 }
@@ -28,14 +24,7 @@ button {
 .area {
   border: 1px solid #ccc;
   padding: 10px;
-  margin-bottom: 10px;
-  border-radius: 5px;
-}
-
-.area-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  margin-bottom: 12px;
 }
 
 .rua {
@@ -44,15 +33,52 @@ button {
 
 .posicoes {
   display: flex;
-  gap: 5px;
-  margin-top: 5px;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .posicao {
-  width: 25px;
-  height: 25px;
+  width: 26px;
+  height: 26px;
   border: 1px solid #555;
   background: #e5e7eb;
+  cursor: pointer;
+}
+
+.posicao.ocupada {
+  background: #22c55e;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 6px;
+  width: 260px;
+}
+
+.hidden {
+  display: none;
+}
+
+.acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.danger {
+  background: #b91c1c;
+  color: #fff;
+  border: none;
 }
 
 .lote-item {
@@ -60,10 +86,4 @@ button {
   padding: 6px;
   border-radius: 4px;
   margin-bottom: 5px;
-}
-
-.danger {
-  background: #b91c1c;
-  color: #fff;
-  border: none;
 }
