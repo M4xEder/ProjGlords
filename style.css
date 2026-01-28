@@ -1,20 +1,22 @@
 body {
-  font-family: Arial;
+  font-family: Arial, sans-serif;
   background: #f4f4f4;
   padding: 20px;
 }
 
-.box {
+.area {
   background: #fff;
   padding: 10px;
   margin-bottom: 15px;
   border-radius: 6px;
 }
 
-.area {
-  background: #fff;
-  padding: 10px;
-  margin-bottom: 10px;
+.area-header,
+.rua-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
 }
 
 .rua {
@@ -30,12 +32,28 @@ body {
 .posicao {
   width: 30px;
   height: 30px;
-  border: 1px solid #333;
+  border: 1px solid #444;
   cursor: pointer;
 }
 
 .posicao.ocupada {
   background: #555;
+}
+
+button {
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.danger {
+  background: #b91c1c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+.danger:hover {
+  background: #991b1b;
 }
 
 .modal {
@@ -49,8 +67,9 @@ body {
 
 .modal-content {
   background: #fff;
-  padding: 20px;
+  padding: 15px;
   width: 300px;
+  border-radius: 6px;
 }
 
 .hidden {
