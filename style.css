@@ -5,12 +5,12 @@ body {
 }
 
 h1, h2 {
-  margin-bottom: 10px;
+  margin-top: 20px;
 }
 
 .cadastro input {
-  padding: 6px;
   margin: 4px;
+  padding: 6px;
 }
 
 button {
@@ -21,33 +21,31 @@ button {
 .area {
   background: #fff;
   padding: 10px;
-  margin-bottom: 15px;
+  margin-top: 10px;
   border-radius: 6px;
 }
 
 .rua {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .posicoes {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   margin-top: 5px;
 }
 
 .posicao {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border: 1px solid #999;
   cursor: pointer;
 }
 
 .posicao.ocupada {
-  background: #4ade80;
-  border: 2px solid #166534;
+  background: #666;
 }
 
-/* MODAL */
 .modal {
   position: fixed;
   inset: 0;
@@ -55,33 +53,34 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-}
-
-.modal.hidden {
-  display: none;
 }
 
 .modal-content {
   background: #fff;
   padding: 20px;
-  width: 280px;
+  width: 300px;
   border-radius: 6px;
 }
 
-.modal-content input,
-.modal-content select {
-  width: 100%;
-  padding: 6px;
-  margin-bottom: 8px;
+.hidden {
+  display: none;
 }
 
 .acoes {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
 }
+
 .danger {
   background: #b91c1c;
-  color: #fff;
+  color: white;
   border: none;
+}
+
+#listaLotes div {
+  background: #fff;
+  padding: 6px;
+  margin-bottom: 4px;
+  border-radius: 4px;
 }
