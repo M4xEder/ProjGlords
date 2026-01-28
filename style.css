@@ -1,16 +1,21 @@
 body {
   font-family: Arial, sans-serif;
-  background: #f4f4f4;
+  background: #f3f3f3;
   padding: 20px;
 }
 
-/* Títulos */
-h1, h2, h3 {
+h1, h2 {
   margin-bottom: 10px;
 }
 
-/* Inputs e botões */
-input, select, button {
+.bloco {
+  background: #fff;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+}
+
+input, button, select {
   padding: 6px;
   margin: 4px 0;
 }
@@ -19,27 +24,33 @@ button {
   cursor: pointer;
 }
 
-/* Botão perigo */
-button.danger {
-  background: #c0392b;
-  color: white;
-  border: none;
-  border-radius: 4px;
-}
-
-button.danger:hover {
-  opacity: 0.85;
-}
-
-/* Layout */
-section {
-  background: #fff;
-  padding: 12px;
+.area {
+  border: 1px solid #ccc;
+  padding: 10px;
   margin-bottom: 15px;
-  border-radius: 6px;
 }
 
-/* Lotes */
+.rua {
+  margin-top: 8px;
+}
+
+.posicoes {
+  display: flex;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.posicao {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #999;
+  cursor: pointer;
+}
+
+.posicao.ocupada {
+  border: 2px solid #000;
+}
+
 .lote-item {
   display: flex;
   align-items: center;
@@ -48,92 +59,34 @@ section {
 }
 
 .lote-cor {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
 }
 
-/* Área */
-.area {
-  background: #fff;
-  border-radius: 6px;
-  padding: 10px;
-  margin-bottom: 15px;
+.historico-item {
+  border: 1px solid #ccc;
+  padding: 8px;
+  margin-bottom: 6px;
+  background: #fafafa;
 }
 
-.area-header,
-.rua-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* Rua */
-.rua {
-  margin-top: 10px;
-  padding-left: 10px;
-}
-
-/* Endereços */
-.posicoes {
-  display: flex;
-  gap: 5px;
-  margin-top: 5px;
-}
-
-.posicao {
-  width: 30px;
-  height: 30px;
-  border: 1px solid #999;
-  cursor: pointer;
-  border-radius: 3px;
-}
-
-.posicao.ocupada {
-  border: 2px solid #000;
-}
-
-/* Destaque da busca */
-.posicao.highlight {
-  outline: 3px solid red;
-  animation: piscar 1s infinite;
-}
-
-@keyframes piscar {
-  0% { outline-color: red; }
-  50% { outline-color: yellow; }
-  100% { outline-color: red; }
-}
-
-/* Modal */
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,.5);
   display: flex;
-  justify-content: center;
   align-items: center;
-}
-
-.modal.hidden {
-  display: none;
+  justify-content: center;
 }
 
 .modal-content {
-  background: white;
+  background: #fff;
   padding: 20px;
   border-radius: 6px;
-  width: 300px;
+  width: 260px;
 }
 
-.modal-content label {
-  display: block;
-  margin-top: 10px;
-}
-
-/* Busca */
-.busca {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 15px;
+.hidden {
+  display: none;
 }
