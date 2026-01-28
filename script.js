@@ -26,6 +26,11 @@ let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
 let lotes = JSON.parse(localStorage.getItem('lotes')) || {};
 let posicaoAtual = null;
 
+// ================= UTIL =================
+function gerarCor() {
+  return `hsl(${Math.random() * 360}, 70%, 70%)`;
+}
+
 // ================= STORAGE =================
 function salvar() {
   localStorage.setItem('mapa', JSON.stringify(mapa));
@@ -42,19 +47,33 @@ btnCriarLote.onclick = () => {
     return;
   }
 
-  lotes[nome] = { total: qtd };
+  if (lotes[nome]) {
+    alert('Lote já existe');
+    return;
+  }
+
+  lotes[nome] = {
+    total: qtd,
+    cor: gerarCor()
+  };
+
   loteNome.value = '';
   loteQtd.value = '';
 
   salvar();
   renderLotes();
+  renderMapa();
 };
 
 function renderLotes() {
   listaLotes.innerHTML = '';
   Object.entries(lotes).forEach(([nome, data]) => {
     const div = document.createElement('div');
-    div.textContent = `${nome} (${data.total})`;
+    div.innerHTML = `
+      <span style="display:inline-block;width:12px;height:12px;
+      background:${data.cor};margin-right:6px;border-radius:3px"></span>
+      ${nome} (${data.total})
+    `;
     listaLotes.appendChild(div);
   });
 }
@@ -141,7 +160,13 @@ function renderMapa() {
 
       rua.posicoes.forEach((pos, p) => {
         const d = document.createElement('div');
-        d.className = 'posicao' + (pos ? ' ocupada' : '');
+        d.className = 'posicao';
+
+        if (pos) {
+          d.classList.add('ocupada');
+          d.style.background = lotes[pos.lote]?.cor || '#ccc';
+        }
+
         d.onclick = () => abrirModal(a, r, p);
         posDiv.appendChild(d);
       });
@@ -211,27 +236,22 @@ btnRemoverEndereco.onclick = () => {
 
 btnFecharModal.onclick = () => modal.classList.add('hidden');
 
-// ================= BUSCA (LOTE / RZ / VOLUME) =================
+// ================= BUSCA =================
 btnBuscar.onclick = () => {
   const termo = buscaInput.value.trim().toLowerCase();
   limparDestaques();
-
-  if (!termo) return;
 
   mapa.forEach((area, a) => {
     area.ruas.forEach((rua, r) => {
       rua.posicoes.forEach((pos, p) => {
         if (!pos) return;
 
-        const lote = pos.lote.toLowerCase();
-        const rz = pos.rz.toLowerCase();
-        const volume = (pos.volume || '').toString().toLowerCase();
+        const match =
+          pos.lote.toLowerCase().includes(termo) ||
+          pos.rz.toLowerCase().includes(termo) ||
+          (pos.volume || '').toString().includes(termo);
 
-        if (
-          lote.includes(termo) ||
-          rz.includes(termo) ||
-          volume.includes(termo)
-        ) {
+        if (match) {
           mapaDiv
             .querySelectorAll('.area')[a]
             .querySelectorAll('.rua')[r]
@@ -246,9 +266,8 @@ btnBuscar.onclick = () => {
 btnLimparBusca.onclick = limparDestaques;
 
 function limparDestaques() {
-  document
-    .querySelectorAll('.posicao.highlight')
-    .forEach(el => el.classList.remove('highlight'));
+  document.querySelectorAll('.posicao.highlight')
+    .forEach(p => p.classList.remove('highlight'));
 }
 
 // ================= INIT =================
