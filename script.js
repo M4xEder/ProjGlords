@@ -62,12 +62,20 @@ btnCriarLote.onclick = () => {
   renderMapa();
 };
 
-function loteEmUso(nome) {
-  return mapa.some(area =>
-    area.ruas.some(rua =>
-      rua.posicoes.some(pos => pos && pos.lote === nome)
+function quantidadeAlocada(loteNome) {
+  let total = 0;
+  mapa.forEach(area =>
+    area.ruas.forEach(rua =>
+      rua.posicoes.forEach(pos => {
+        if (pos && pos.lote === loteNome) total++;
+      })
     )
   );
+  return total;
+}
+
+function loteEmUso(nome) {
+  return quantidadeAlocada(nome) > 0;
 }
 
 function renderLotes() {
@@ -84,16 +92,37 @@ function renderLotes() {
     const info = document.createElement('span');
     info.textContent = `${nome} (${data.total})`;
 
+    const btnEditar = document.createElement('button');
+    btnEditar.textContent = 'Editar';
+    btnEditar.onclick = () => {
+      const usado = quantidadeAlocada(nome);
+      const novaQtd = Number(
+        prompt(
+          `Quantidade atual: ${data.total}\nAlocadas: ${usado}\n\nNova quantidade:`,
+          data.total
+        )
+      );
+
+      if (!novaQtd || novaQtd <= 0) return;
+
+      if (novaQtd < usado) {
+        alert(`Quantidade inválida. Existem ${usado} gaylords alocadas.`);
+        return;
+      }
+
+      lotes[nome].total = novaQtd;
+      salvar();
+      renderLotes();
+    };
+
     const btnExcluir = document.createElement('button');
     btnExcluir.textContent = 'Excluir';
     btnExcluir.className = 'danger';
-
     btnExcluir.onclick = () => {
       if (loteEmUso(nome)) {
         alert('Não é possível excluir. Lote possui gaylords alocadas.');
         return;
       }
-
       if (!confirm(`Excluir o lote "${nome}"?`)) return;
 
       delete lotes[nome];
@@ -104,16 +133,18 @@ function renderLotes() {
 
     div.appendChild(cor);
     div.appendChild(info);
+    div.appendChild(btnEditar);
     div.appendChild(btnExcluir);
-
     listaLotes.appendChild(div);
   });
 }
 
 // ================= ÁREA =================
 btnCriarArea.onclick = () => {
-  if (!areaNome.value.trim()) return;
-  mapa.push({ nome: areaNome.value.trim(), ruas: [] });
+  const nome = areaNome.value.trim();
+  if (!nome) return;
+
+  mapa.push({ nome, ruas: [] });
   areaNome.value = '';
   salvar();
   renderMapa();
@@ -271,6 +302,7 @@ btnFecharModal.onclick = () => modal.classList.add('hidden');
 btnBuscar.onclick = () => {
   const termo = buscaInput.value.trim().toLowerCase();
   limparDestaques();
+  if (!termo) return;
 
   mapa.forEach((area, a) => {
     area.ruas.forEach((rua, r) => {
