@@ -16,8 +16,7 @@ function salvarTudo() {
 }
 
 function gerarCor() {
-  // Cor aleatória em HSL
-  return `hsl(${Math.floor(Math.random()*360)}, 70%, 70%)`;
+  return `hsl(${Math.floor(Math.random() * 360)}, 70%, 70%)`;
 }
 
 // =======================
@@ -42,7 +41,6 @@ function cadastrarLote() {
 
   if (!nome || total <= 0) { alert('Informe nome e quantidade de gaylords'); return; }
 
-  // Cria lote com cor automática
   lotesCadastrados[nome] = { total, cor: gerarCor() };
 
   document.getElementById('loteNome').value = '';
@@ -123,7 +121,14 @@ function renderMapa() {
         if (pos) {
           box.classList.add('ocupada');
           box.style.background = lotesCadastrados[pos.lote]?.cor || '#ccc';
+          box.dataset.lote = pos.lote;
+          box.dataset.rz = pos.rz || '';
+          box.dataset.volume = pos.volume || '';
           box.title = `Lote: ${pos.lote}\nRZ: ${pos.rz || '-'}\nVolume: ${pos.volume || '-'}`;
+        } else {
+          box.dataset.lote = '';
+          box.dataset.rz = '';
+          box.dataset.volume = '';
         }
 
         box.onclick = () => abrirModal(ai, ri, pi);
@@ -134,7 +139,6 @@ function renderMapa() {
       divArea.appendChild(divRua);
     });
 
-    // Botão adicionar rua
     const btnAddRua = document.createElement('button');
     btnAddRua.textContent = 'Adicionar Rua';
     btnAddRua.onclick = () => adicionarRua(ai);
@@ -153,7 +157,6 @@ function renderMapa() {
 function adicionarRua(areaIndex) {
   const nome = prompt('Nome da rua');
   const qtd = parseInt(prompt('Quantidade de posições'));
-
   if (!nome || qtd <= 0) return;
 
   mapaSalvo[areaIndex].ruas.push({ nome, posicoes: Array(qtd).fill(null) });
@@ -227,7 +230,6 @@ function salvarEndereco() {
   if(!lote) { alert('Selecione um lote'); return; }
   if(!rz) { alert('RZ é obrigatório'); return; }
 
-  // Verifica limite de gaylords
   const totalLote = lotesCadastrados[lote].total;
   const alocados = contarGaylordsDoLote(lote);
   const posAtual = mapaSalvo[posicaoAtual.ai].ruas[posicaoAtual.ri].posicoes[posicaoAtual.pi];
@@ -237,7 +239,6 @@ function salvarEndereco() {
     return;
   }
 
-  // Não sobrescrever se já ocupado
   if(posAtual && posAtual.lote && posAtual.lote !== lote){
     alert('Endereço já ocupado por outro lote!');
     return;
@@ -290,14 +291,14 @@ function excluirLote(nome) {
 }
 
 // =======================
-// BUSCA
+// BUSCA COM DESTAQUE E ROLL
 // =======================
 function buscar() {
   const termo = document.getElementById('buscaInput').value.trim().toLowerCase();
   limparBusca();
   if(!termo) return;
 
-  let encontrado = false;
+  const resultados = [];
   document.querySelectorAll('.posicao').forEach(p => {
     const lote = (p.dataset.lote || '').toLowerCase();
     const rz = (p.dataset.rz || '').toLowerCase();
@@ -305,11 +306,15 @@ function buscar() {
 
     if(lote.includes(termo) || rz.includes(termo) || volume.includes(termo)){
       p.classList.add('highlight');
-      encontrado = true;
+      resultados.push(p);
     }
   });
 
-  if(!encontrado) alert('Nenhum resultado encontrado');
+  if(resultados.length > 0){
+    resultados[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else {
+    alert('Nenhum resultado encontrado');
+  }
 }
 
 function limparBusca() {
@@ -341,13 +346,6 @@ function expedirLote(nome) {
 
   // Histórico
   const agora = new Date();
-  const volumes = [];
-  mapaSalvo.forEach(area => area.ruas.forEach(rua => {
-    rua.posicoes.forEach(pos => {
-      if(pos?.lote === nome) volumes.push({rz: pos.rz, volume: pos.volume});
-    });
-  }));
-
   historicoExpedidos.push({
     lote: nome,
     expedidos: alocados,
