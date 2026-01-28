@@ -37,6 +37,23 @@ function salvar() {
   localStorage.setItem('lotes', JSON.stringify(lotes));
 }
 
+// ================= CONTADORES =================
+function quantidadeAlocada(loteNome) {
+  let total = 0;
+  mapa.forEach(area =>
+    area.ruas.forEach(rua =>
+      rua.posicoes.forEach(pos => {
+        if (pos && pos.lote === loteNome) total++;
+      })
+    )
+  );
+  return total;
+}
+
+function loteEmUso(nome) {
+  return quantidadeAlocada(nome) > 0;
+}
+
 // ================= LOTES =================
 btnCriarLote.onclick = () => {
   const nome = loteNome.value.trim();
@@ -62,22 +79,6 @@ btnCriarLote.onclick = () => {
   renderMapa();
 };
 
-function quantidadeAlocada(loteNome) {
-  let total = 0;
-  mapa.forEach(area =>
-    area.ruas.forEach(rua =>
-      rua.posicoes.forEach(pos => {
-        if (pos && pos.lote === loteNome) total++;
-      })
-    )
-  );
-  return total;
-}
-
-function loteEmUso(nome) {
-  return quantidadeAlocada(nome) > 0;
-}
-
 function renderLotes() {
   listaLotes.innerHTML = '';
 
@@ -89,13 +90,14 @@ function renderLotes() {
     cor.className = 'lote-cor';
     cor.style.background = data.cor;
 
+    const usado = quantidadeAlocada(nome);
+
     const info = document.createElement('span');
-    info.textContent = `${nome} (${data.total})`;
+    info.textContent = `${nome} (${usado}/${data.total})`;
 
     const btnEditar = document.createElement('button');
     btnEditar.textContent = 'Editar';
     btnEditar.onclick = () => {
-      const usado = quantidadeAlocada(nome);
       const novaQtd = Number(
         prompt(
           `Quantidade atual: ${data.total}\nAlocadas: ${usado}\n\nNova quantidade:`,
@@ -275,8 +277,20 @@ btnSalvarEndereco.onclick = () => {
     return;
   }
 
+  const lote = modalLote.value;
+  const alocados = quantidadeAlocada(lote);
+  const limite = lotes[lote].total;
+
+  if (alocados >= limite) {
+    alert(
+      `Lote "${lote}" já possui ${alocados} gaylords alocadas.\n` +
+      `Limite do lote: ${limite}.`
+    );
+    return;
+  }
+
   mapa[a].ruas[r].posicoes[p] = {
-    lote: modalLote.value,
+    lote,
     rz: modalRz.value,
     volume: modalVolume.value || null
   };
