@@ -1,385 +1,395 @@
-// ======================
-// INICIALIZAÇÃO SEGURA
-// ======================
-document.addEventListener('DOMContentLoaded', () => {
-  carregarEstado();
-  renderAreas();
-  renderLotes();
-  renderExpedidos();
-});
-
-// ======================
+// =======================
 // ESTADO GLOBAL
-// ======================
-let areas = [];
-let lotes = {};
-let historicoExpedidos = [];
-
+// =======================
+let mapaSalvo = JSON.parse(localStorage.getItem('mapa')) || [];
+let lotesCadastrados = JSON.parse(localStorage.getItem('lotes')) || {};
+let historicoExpedidos = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
 let posicaoAtual = null;
 
-// ======================
-// STORAGE
-// ======================
-function carregarEstado() {
-  areas = JSON.parse(localStorage.getItem('areas')) || [];
-  lotes = JSON.parse(localStorage.getItem('lotes')) || {};
-  historicoExpedidos = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
-}
-
-function salvar() {
-  localStorage.setItem('areas', JSON.stringify(areas));
-  localStorage.setItem('lotes', JSON.stringify(lotes));
+// =======================
+// UTILIDADES
+// =======================
+function salvarTudo() {
+  localStorage.setItem('mapa', JSON.stringify(mapaSalvo));
+  localStorage.setItem('lotes', JSON.stringify(lotesCadastrados));
   localStorage.setItem('historicoExpedidos', JSON.stringify(historicoExpedidos));
 }
 
-// ======================
-// UTILIDADES
-// ======================
 function gerarCor() {
-  return `hsl(${Math.random() * 360},70%,65%)`;
+  // Cor aleatória em HSL
+  return `hsl(${Math.floor(Math.random()*360)}, 70%, 70%)`;
 }
 
-function contarAlocados(lote) {
-  let total = 0;
-  areas.forEach(a =>
-    a.ruas.forEach(r =>
-      r.posicoes.forEach(p => {
-        if (p && p.lote === lote) total++;
-      })
-    )
-  );
-  return total;
+// =======================
+// CADASTRO DE ÁREA
+// =======================
+function criarArea() {
+  const nome = document.getElementById('areaNome').value.trim();
+  if (!nome) { alert('Informe o nome da área'); return; }
+
+  mapaSalvo.push({ nome, ruas: [] });
+  document.getElementById('areaNome').value = '';
+  salvarTudo();
+  renderMapa();
 }
 
-// ======================
-// LOTES
-// ======================
+// =======================
+// CADASTRO DE LOTE
+// =======================
 function cadastrarLote() {
   const nome = document.getElementById('loteNome').value.trim();
-  const total = Number(document.getElementById('loteTotal').value);
+  const total = parseInt(document.getElementById('loteTotal').value);
 
-  if (!nome || total <= 0) {
-    alert('Informe nome e quantidade');
-    return;
-  }
+  if (!nome || total <= 0) { alert('Informe nome e quantidade de gaylords'); return; }
 
-  if (lotes[nome]) {
-    alert('Lote já existe');
-    return;
-  }
-
-  lotes[nome] = {
-    total,
-    cor: gerarCor()
-  };
+  // Cria lote com cor automática
+  lotesCadastrados[nome] = { total, cor: gerarCor() };
 
   document.getElementById('loteNome').value = '';
   document.getElementById('loteTotal').value = '';
 
-  salvar();
+  salvarTudo();
   renderLotes();
+  renderMapa();
 }
 
-function excluirLote(nome) {
-  if (contarAlocados(nome) > 0) {
-    alert('Lote possui gaylords alocadas');
-    return;
-  }
+// =======================
+// RENDER LOTES ATIVOS
+// =======================
+function renderLotes() {
+  const container = document.getElementById('lotesAtivos');
+  container.innerHTML = '';
 
-  if (!confirm(`Excluir lote ${nome}?`)) return;
+  Object.entries(lotesCadastrados).forEach(([nome, data]) => {
+    const usado = contarGaylordsDoLote(nome);
+    const perc = Math.min((usado / data.total) * 100, 100);
 
-  delete lotes[nome];
-  salvar();
+    const div = document.createElement('div');
+    div.className = 'lote-card';
+    div.innerHTML = `
+      <strong>${nome}</strong> (${usado}/${data.total})
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${perc}%; background:${data.cor}"></div>
+      </div>
+      <button onclick="alterarQtdLote('${nome}')">Alterar Qtd</button>
+      <button onclick="excluirLote('${nome}')">Excluir</button>
+      <button onclick="expedirLote('${nome}')">Expedir</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// =======================
+// RENDER MAPA
+// =======================
+function renderMapa() {
+  const container = document.getElementById('mapa');
+  container.innerHTML = '';
+
+  mapaSalvo.forEach((area, ai) => {
+    const divArea = document.createElement('div');
+    divArea.className = 'area';
+
+    const areaHeader = document.createElement('div');
+    areaHeader.className = 'area-header';
+    areaHeader.innerHTML = `<strong>${area.nome}</strong>`;
+
+    const btnExcluirArea = document.createElement('button');
+    btnExcluirArea.textContent = 'Excluir Área';
+    btnExcluirArea.onclick = () => excluirArea(ai);
+    areaHeader.appendChild(btnExcluirArea);
+    divArea.appendChild(areaHeader);
+
+    area.ruas.forEach((rua, ri) => {
+      const divRua = document.createElement('div');
+      divRua.className = 'rua';
+      divRua.innerHTML = `<strong>Rua: ${rua.nome}</strong>`;
+
+      const btnExcluirRua = document.createElement('button');
+      btnExcluirRua.textContent = 'Excluir Rua';
+      btnExcluirRua.onclick = () => excluirRua(ai, ri);
+      divRua.appendChild(btnExcluirRua);
+
+      const posicoesDiv = document.createElement('div');
+      posicoesDiv.className = 'posicoes';
+
+      rua.posicoes.forEach((pos, pi) => {
+        const box = document.createElement('div');
+        box.className = 'posicao';
+        box.dataset.area = ai;
+        box.dataset.rua = ri;
+        box.dataset.pos = pi;
+
+        if (pos) {
+          box.classList.add('ocupada');
+          box.style.background = lotesCadastrados[pos.lote]?.cor || '#ccc';
+          box.title = `Lote: ${pos.lote}\nRZ: ${pos.rz || '-'}\nVolume: ${pos.volume || '-'}`;
+        }
+
+        box.onclick = () => abrirModal(ai, ri, pi);
+        posicoesDiv.appendChild(box);
+      });
+
+      divRua.appendChild(posicoesDiv);
+      divArea.appendChild(divRua);
+    });
+
+    // Botão adicionar rua
+    const btnAddRua = document.createElement('button');
+    btnAddRua.textContent = 'Adicionar Rua';
+    btnAddRua.onclick = () => adicionarRua(ai);
+    divArea.appendChild(btnAddRua);
+
+    container.appendChild(divArea);
+  });
+
   renderLotes();
+  renderExpedidos();
 }
 
-function alterarQuantidadeLote(nome) {
-  const novo = Number(prompt('Nova quantidade'));
-  if (novo <= 0) return;
-
-  const usados = contarAlocados(nome);
-  if (novo < usados) {
-    alert(`Já existem ${usados} alocados`);
-    return;
-  }
-
-  lotes[nome].total = novo;
-  salvar();
-  renderLotes();
-}
-
-// ======================
-// ÁREAS / RUAS
-// ======================
-function criarArea() {
-  const nome = document.getElementById('areaNome').value.trim();
-  if (!nome) return;
-
-  areas.push({ nome, ruas: [] });
-  document.getElementById('areaNome').value = '';
-
-  salvar();
-  renderAreas();
-}
-
-function excluirArea(index) {
-  const ocupada = areas[index].ruas.some(r => r.posicoes.some(p => p));
-  if (ocupada) {
-    alert('Área possui gaylords alocadas');
-    return;
-  }
-
-  if (!confirm('Excluir área?')) return;
-
-  areas.splice(index, 1);
-  salvar();
-  renderAreas();
-}
-
-function criarRua(areaIndex) {
+// =======================
+// RUA
+// =======================
+function adicionarRua(areaIndex) {
   const nome = prompt('Nome da rua');
-  const qtd = Number(prompt('Quantidade de endereços'));
+  const qtd = parseInt(prompt('Quantidade de posições'));
 
   if (!nome || qtd <= 0) return;
 
-  areas[areaIndex].ruas.push({
-    nome,
-    posicoes: Array(qtd).fill(null)
-  });
-
-  salvar();
-  renderAreas();
+  mapaSalvo[areaIndex].ruas.push({ nome, posicoes: Array(qtd).fill(null) });
+  salvarTudo();
+  renderMapa();
 }
 
-function excluirRua(a, r) {
-  const ocupada = areas[a].ruas[r].posicoes.some(p => p);
-  if (ocupada) {
-    alert('Rua possui gaylords alocadas');
+// =======================
+// EXCLUIR AREA / RUA
+// =======================
+function excluirArea(ai) {
+  const area = mapaSalvo[ai];
+  if (area.ruas.some(rua => rua.posicoes.some(pos => pos))) {
+    alert('Não é possível excluir área com gaylords alocados!');
     return;
   }
+  if (!confirm('Excluir área?')) return;
+  mapaSalvo.splice(ai, 1);
+  salvarTudo();
+  renderMapa();
+}
 
+function excluirRua(ai, ri) {
+  const rua = mapaSalvo[ai].ruas[ri];
+  if (rua.posicoes.some(pos => pos)) {
+    alert('Não é possível excluir rua com gaylords alocados!');
+    return;
+  }
   if (!confirm('Excluir rua?')) return;
-
-  areas[a].ruas.splice(r, 1);
-  salvar();
-  renderAreas();
+  mapaSalvo[ai].ruas.splice(ri,1);
+  salvarTudo();
+  renderMapa();
 }
 
-// ======================
-// RENDER MAPA
-// ======================
-function renderAreas() {
-  const mapa = document.getElementById('mapa');
-  if (!mapa) return;
-
-  mapa.innerHTML = '';
-
-  areas.forEach((area, a) => {
-    const areaDiv = document.createElement('div');
-    areaDiv.className = 'area';
-
-    areaDiv.innerHTML = `
-      <h3>
-        ${area.nome}
-        <button onclick="excluirArea(${a})">Excluir Área</button>
-      </h3>
-    `;
-
-    area.ruas.forEach((rua, r) => {
-      const ruaDiv = document.createElement('div');
-      ruaDiv.className = 'rua';
-
-      ruaDiv.innerHTML = `
-        <strong>${rua.nome}</strong>
-        <button onclick="excluirRua(${a},${r})">Excluir Rua</button>
-      `;
-
-      const posDiv = document.createElement('div');
-      posDiv.className = 'posicoes';
-
-      rua.posicoes.forEach((pos, p) => {
-        const d = document.createElement('div');
-        d.className = 'posicao';
-
-        if (pos) {
-          d.style.background = lotes[pos.lote]?.cor || '#ccc';
-          d.dataset.lote = pos.lote;
-          d.dataset.rz = pos.rz;
-          d.dataset.volume = pos.volume || '';
-        }
-
-        d.onclick = () => abrirModal(a, r, p);
-        posDiv.appendChild(d);
-      });
-
-      ruaDiv.appendChild(posDiv);
-      areaDiv.appendChild(ruaDiv);
-    });
-
-    const btnRua = document.createElement('button');
-    btnRua.textContent = 'Adicionar Rua';
-    btnRua.onclick = () => criarRua(a);
-
-    areaDiv.appendChild(btnRua);
-    mapa.appendChild(areaDiv);
-  });
-}
-
-// ======================
-// RENDER LOTES
-// ======================
-function renderLotes() {
-  const div = document.getElementById('lotesAtivos');
-  if (!div) return;
-
-  div.innerHTML = '';
-
-  Object.entries(lotes).forEach(([nome, data]) => {
-    const usados = contarAlocados(nome);
-
-    div.innerHTML += `
-      <div class="lote-card">
-        <strong>${nome}</strong><br>
-        ${usados} / ${data.total}
-        <div class="acoes">
-          <button onclick="alterarQuantidadeLote('${nome}')">Editar</button>
-          <button onclick="excluirLote('${nome}')">Excluir</button>
-          <button onclick="expedirLote('${nome}')">Expedir</button>
-        </div>
-      </div>
-    `;
-  });
-}
-
-// ======================
+// =======================
 // MODAL
-// ======================
-function abrirModal(a, r, p) {
-  posicaoAtual = { a, r, p };
+// =======================
+function abrirModal(ai, ri, pi) {
+  posicaoAtual = { ai, ri, pi };
+  const pos = mapaSalvo[ai].ruas[ri].posicoes[pi];
+
   const modal = document.getElementById('modal');
   modal.classList.remove('hidden');
 
-  const pos = areas[a].ruas[r].posicoes[p];
+  const select = document.getElementById('modalLote');
+  select.innerHTML = '<option value="">Selecione lote</option>';
+  Object.keys(lotesCadastrados).forEach(l => {
+    const opt = document.createElement('option');
+    opt.value = l;
+    opt.textContent = l;
+    if(pos?.lote === l) opt.selected = true;
+    select.appendChild(opt);
+  });
 
   document.getElementById('modalRz').value = pos?.rz || '';
   document.getElementById('modalVolume').value = pos?.volume || '';
-
-  const select = document.getElementById('modalLote');
-  select.innerHTML = '<option value="">Selecione</option>';
-
-  Object.keys(lotes).forEach(l => {
-    const usados = contarAlocados(l);
-    if (usados < lotes[l].total || pos?.lote === l) {
-      select.innerHTML += `<option value="${l}" ${pos?.lote === l ? 'selected' : ''}>${l}</option>`;
-    }
-  });
 }
 
 function fecharModal() {
   document.getElementById('modal').classList.add('hidden');
 }
 
+// =======================
+// SALVAR / REMOVER ENDEREÇO
+// =======================
 function salvarEndereco() {
   const lote = document.getElementById('modalLote').value;
   const rz = document.getElementById('modalRz').value.trim();
   const volume = document.getElementById('modalVolume').value.trim();
 
-  if (!rz) {
-    alert('RZ obrigatório');
+  if(!lote) { alert('Selecione um lote'); return; }
+  if(!rz) { alert('RZ é obrigatório'); return; }
+
+  // Verifica limite de gaylords
+  const totalLote = lotesCadastrados[lote].total;
+  const alocados = contarGaylordsDoLote(lote);
+  const posAtual = mapaSalvo[posicaoAtual.ai].ruas[posicaoAtual.ri].posicoes[posicaoAtual.pi];
+
+  if(!posAtual && alocados >= totalLote){
+    alert(`Lote ${lote} já atingiu limite de ${totalLote} gaylords`);
     return;
   }
 
-  const atual = areas[posicaoAtual.a].ruas[posicaoAtual.r].posicoes[posicaoAtual.p];
-  if (atual && atual.lote && atual.lote !== lote) {
-    alert('Endereço já ocupado');
+  // Não sobrescrever se já ocupado
+  if(posAtual && posAtual.lote && posAtual.lote !== lote){
+    alert('Endereço já ocupado por outro lote!');
     return;
   }
 
-  areas[posicaoAtual.a].ruas[posicaoAtual.r].posicoes[posicaoAtual.p] = {
-    lote,
-    rz,
-    volume
-  };
-
-  salvar();
+  mapaSalvo[posicaoAtual.ai].ruas[posicaoAtual.ri].posicoes[posicaoAtual.pi] = { lote, rz, volume };
+  salvarTudo();
   fecharModal();
-  renderAreas();
-  renderLotes();
+  renderMapa();
 }
 
 function removerEndereco() {
-  areas[posicaoAtual.a].ruas[posicaoAtual.r].posicoes[posicaoAtual.p] = null;
-  salvar();
+  mapaSalvo[posicaoAtual.ai].ruas[posicaoAtual.ri].posicoes[posicaoAtual.pi] = null;
+  salvarTudo();
   fecharModal();
-  renderAreas();
+  renderMapa();
+}
+
+// =======================
+// CONTADOR
+// =======================
+function contarGaylordsDoLote(lote) {
+  let total = 0;
+  mapaSalvo.forEach(area => area.ruas.forEach(rua => rua.posicoes.forEach(pos => {
+    if(pos?.lote === lote) total++;
+  })));
+  return total;
+}
+
+// =======================
+// ALTERAR / EXCLUIR LOTE
+// =======================
+function alterarQtdLote(nome) {
+  const novo = parseInt(prompt('Nova quantidade de gaylords', lotesCadastrados[nome].total));
+  if(!novo || novo < 1) return;
+  lotesCadastrados[nome].total = novo;
+  salvarTudo();
   renderLotes();
 }
 
-// ======================
-// EXPEDIÇÃO
-// ======================
-function expedirLote(nome) {
-  let expedidos = [];
-  let qtd = 0;
-
-  areas.forEach(a =>
-    a.ruas.forEach(r =>
-      r.posicoes.forEach((p, i) => {
-        if (p && p.lote === nome) {
-          expedidos.push({ rz: p.rz, volume: p.volume });
-          r.posicoes[i] = null;
-          qtd++;
-        }
-      })
-    )
-  );
-
-  if (qtd === 0) {
-    alert('Nenhuma gaylord alocada');
+function excluirLote(nome) {
+  if(contarGaylordsDoLote(nome) > 0){
+    alert('Não é possível excluir lote com gaylords alocados');
     return;
   }
+  if(!confirm('Excluir lote?')) return;
+  delete lotesCadastrados[nome];
+  salvarTudo();
+  renderMapa();
+}
 
-  lotes[nome].total -= qtd;
+// =======================
+// BUSCA
+// =======================
+function buscar() {
+  const termo = document.getElementById('buscaInput').value.trim().toLowerCase();
+  limparBusca();
+  if(!termo) return;
+
+  let encontrado = false;
+  document.querySelectorAll('.posicao').forEach(p => {
+    const lote = (p.dataset.lote || '').toLowerCase();
+    const rz = (p.dataset.rz || '').toLowerCase();
+    const volume = (p.dataset.volume || '').toLowerCase();
+
+    if(lote.includes(termo) || rz.includes(termo) || volume.includes(termo)){
+      p.classList.add('highlight');
+      encontrado = true;
+    }
+  });
+
+  if(!encontrado) alert('Nenhum resultado encontrado');
+}
+
+function limparBusca() {
+  document.querySelectorAll('.posicao.highlight').forEach(p => p.classList.remove('highlight'));
+}
+
+// =======================
+// EXPEDIÇÃO
+// =======================
+function expedirLote(nome) {
+  const alocados = contarGaylordsDoLote(nome);
+  const totalOriginal = lotesCadastrados[nome].total;
+
+  if(alocados === 0) { alert('Nenhuma gaylord alocada para expedição'); return; }
+
+  let observacao = '';
+  if(alocados < totalOriginal){
+    const confirma = confirm(`Lote ${nome} não está totalmente alocado.\nExpedir apenas alocados?`);
+    if(!confirma) return;
+    observacao = `Expedido parcialmente: ${alocados} de ${totalOriginal}`;
+  } else {
+    observacao = 'Expedido completo';
+  }
+
+  // Remove posições alocadas
+  mapaSalvo.forEach(area => area.ruas.forEach(rua => {
+    rua.posicoes = rua.posicoes.map(pos => pos?.lote === nome ? null : pos);
+  }));
+
+  // Histórico
+  const agora = new Date();
+  const volumes = [];
+  mapaSalvo.forEach(area => area.ruas.forEach(rua => {
+    rua.posicoes.forEach(pos => {
+      if(pos?.lote === nome) volumes.push({rz: pos.rz, volume: pos.volume});
+    });
+  }));
 
   historicoExpedidos.push({
     lote: nome,
-    quantidade: qtd,
-    restante: lotes[nome].total,
-    data: new Date().toLocaleString(),
-    itens: expedidos
+    expedidos: alocados,
+    totalOriginal,
+    observacao,
+    data: agora.toLocaleDateString(),
+    hora: agora.toLocaleTimeString()
   });
 
-  if (lotes[nome].total <= 0) {
-    delete lotes[nome];
-  }
-
-  salvar();
-  renderAreas();
-  renderLotes();
+  salvarTudo();
+  renderMapa();
   renderExpedidos();
 }
 
-// ======================
-// HISTÓRICO
-// ======================
+// =======================
+// RENDER EXPEDIDOS
+// =======================
 function renderExpedidos() {
-  const div = document.getElementById('lotesExpedidos');
-  if (!div) return;
+  const container = document.getElementById('lotesExpedidos');
+  container.innerHTML = '';
 
-  div.innerHTML = '';
+  if(historicoExpedidos.length === 0){
+    container.innerHTML = '<p>Nenhum lote expedido ainda</p>';
+    return;
+  }
 
-  historicoExpedidos.forEach(h => {
-    div.innerHTML += `
-      <div class="lote-card">
-        <strong>${h.lote}</strong><br>
-        Expedidos: ${h.quantidade}<br>
-        Restante: ${h.restante}<br>
-        ${h.data}
-        <details>
-          <summary>RZ / Volumes</summary>
-          ${h.itens.map(i => `RZ: ${i.rz} | Vol: ${i.volume || '-'}`).join('<br>')}
-        </details>
-      </div>
+  historicoExpedidos.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'historico-item';
+    div.innerHTML = `
+      <strong>Lote:</strong> ${item.lote}<br>
+      <strong>Expedidos:</strong> ${item.expedidos}<br>
+      <strong>Total original:</strong> ${item.totalOriginal}<br>
+      <strong>Observação:</strong> ${item.observacao}<br>
+      <strong>Data:</strong> ${item.data}<br>
+      <strong>Hora:</strong> ${item.hora}
     `;
+    container.appendChild(div);
   });
 }
+
+// =======================
+// INIT
+// =======================
+renderMapa();
