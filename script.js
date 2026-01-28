@@ -4,6 +4,7 @@
 let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
 let lotes = JSON.parse(localStorage.getItem('lotes')) || {};
 let posicaoAtual = null;
+let termoBuscaAtual = '';
 
 // =======================
 // STORAGE
@@ -68,9 +69,7 @@ function criarArea() {
 }
 
 function excluirArea(a) {
-  const area = mapa[a];
-
-  const temGaylord = area.ruas.some(rua =>
+  const temGaylord = mapa[a].ruas.some(rua =>
     rua.posicoes.some(pos => pos !== null)
   );
 
@@ -79,7 +78,7 @@ function excluirArea(a) {
     return;
   }
 
-  if (!confirm(`Excluir a área "${area.nome}"?`)) return;
+  if (!confirm(`Excluir a área "${mapa[a].nome}"?`)) return;
 
   mapa.splice(a, 1);
   salvar();
@@ -105,16 +104,14 @@ function criarRua(a) {
 }
 
 function excluirRua(a, r) {
-  const rua = mapa[a].ruas[r];
-
-  const temGaylord = rua.posicoes.some(pos => pos !== null);
+  const temGaylord = mapa[a].ruas[r].posicoes.some(pos => pos !== null);
 
   if (temGaylord) {
     alert('Não é possível excluir a rua. Existem gaylords alocadas.');
     return;
   }
 
-  if (!confirm(`Excluir a rua "${rua.nome}"?`)) return;
+  if (!confirm(`Excluir a rua "${mapa[a].ruas[r].nome}"?`)) return;
 
   mapa[a].ruas.splice(r, 1);
   salvar();
@@ -137,25 +134,21 @@ function renderMapa() {
     const areaDiv = document.createElement('div');
     areaDiv.className = 'area';
 
-    // Header Área
+    // Área header
     const headerArea = document.createElement('div');
     headerArea.style.display = 'flex';
     headerArea.style.justifyContent = 'space-between';
-    headerArea.style.alignItems = 'center';
 
-    const tituloArea = document.createElement('strong');
-    tituloArea.textContent = area.nome;
+    headerArea.innerHTML = `<strong>${area.nome}</strong>`;
 
     const btnExcluirArea = document.createElement('button');
     btnExcluirArea.textContent = 'Excluir Área';
     btnExcluirArea.className = 'danger';
     btnExcluirArea.onclick = () => excluirArea(a);
 
-    headerArea.appendChild(tituloArea);
     headerArea.appendChild(btnExcluirArea);
     areaDiv.appendChild(headerArea);
 
-    // Ruas
     area.ruas.forEach((rua, r) => {
       const ruaDiv = document.createElement('div');
       ruaDiv.className = 'rua';
@@ -163,17 +156,14 @@ function renderMapa() {
       const headerRua = document.createElement('div');
       headerRua.style.display = 'flex';
       headerRua.style.justifyContent = 'space-between';
-      headerRua.style.alignItems = 'center';
 
-      const nomeRua = document.createElement('span');
-      nomeRua.textContent = `Rua ${rua.nome}`;
+      headerRua.innerHTML = `<span>Rua ${rua.nome}</span>`;
 
       const btnExcluirRua = document.createElement('button');
       btnExcluirRua.textContent = 'Excluir Rua';
       btnExcluirRua.className = 'danger';
       btnExcluirRua.onclick = () => excluirRua(a, r);
 
-      headerRua.appendChild(nomeRua);
       headerRua.appendChild(btnExcluirRua);
       ruaDiv.appendChild(headerRua);
 
@@ -183,7 +173,13 @@ function renderMapa() {
       rua.posicoes.forEach((pos, p) => {
         const d = document.createElement('div');
         d.className = 'posicao';
-        if (pos) d.classList.add('ocupada');
+
+        if (pos) {
+          d.classList.add('ocupada');
+          d.dataset.lote = pos.lote || '';
+          d.dataset.rz = pos.rz || '';
+          d.dataset.volume = pos.volume || '';
+        }
 
         d.onclick = () => abrirModal(a, r, p);
         posDiv.appendChild(d);
@@ -200,6 +196,49 @@ function renderMapa() {
     areaDiv.appendChild(btnRua);
     mapaDiv.appendChild(areaDiv);
   });
+
+  reaplicarBusca();
+}
+
+// =======================
+// BUSCA
+// =======================
+function buscar() {
+  termoBuscaAtual = document.getElementById('buscaInput').value
+    .trim()
+    .toLowerCase();
+
+  aplicarBusca();
+}
+
+function aplicarBusca() {
+  limparBusca();
+  if (!termoBuscaAtual) return;
+
+  document.querySelectorAll('.posicao.ocupada').forEach(pos => {
+    const lote = (pos.dataset.lote || '').toLowerCase();
+    const rz = (pos.dataset.rz || '').toLowerCase();
+    const volume = (pos.dataset.volume || '').toLowerCase();
+
+    if (
+      lote.includes(termoBuscaAtual) ||
+      rz.includes(termoBuscaAtual) ||
+      volume.includes(termoBuscaAtual)
+    ) {
+      pos.classList.add('destaque');
+    }
+  });
+}
+
+function limparBusca() {
+  termoBuscaAtual = '';
+  document
+    .querySelectorAll('.posicao.destaque')
+    .forEach(p => p.classList.remove('destaque'));
+}
+
+function reaplicarBusca() {
+  if (termoBuscaAtual) aplicarBusca();
 }
 
 // =======================
@@ -228,6 +267,9 @@ function fecharModal() {
   modal.classList.add('hidden');
 }
 
+// =======================
+// ENDEREÇAMENTO
+// =======================
 function salvarEndereco() {
   const lote = modalLote.value;
   const rz = modalRz.value.trim();
@@ -238,9 +280,10 @@ function salvarEndereco() {
     return;
   }
 
-  const ref = mapa[posicaoAtual.a]
-    .ruas[posicaoAtual.r]
-    .posicoes[posicaoAtual.p];
+  const ref =
+    mapa[posicaoAtual.a]
+      .ruas[posicaoAtual.r]
+      .posicoes[posicaoAtual.p];
 
   if (ref) {
     alert('Este endereço já está ocupado');
