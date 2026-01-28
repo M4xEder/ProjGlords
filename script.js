@@ -1,61 +1,35 @@
-// =======================
 // DOM
-// =======================
 const mapaDiv = document.getElementById('mapa');
+const modal = document.getElementById('modal');
+const modalRz = document.getElementById('modalRz');
+const modalVolume = document.getElementById('modalVolume');
 
-// =======================
-// ESTADO GLOBAL
-// =======================
+// ESTADO
 let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
 let posicaoAtual = null;
 
-// =======================
 // SALVAR
-// =======================
 function salvar() {
   localStorage.setItem('mapa', JSON.stringify(mapa));
 }
 
-// =======================
 // ÁREA
-// =======================
 function criarArea() {
   const nome = areaNome.value.trim();
-  if (!nome) {
-    alert('Informe o nome da área');
-    return;
-  }
+  if (!nome) return alert('Nome da área obrigatório');
 
-  mapa.push({
-    nome,
-    ruas: []
-  });
-
+  mapa.push({ nome, ruas: [] });
   areaNome.value = '';
   salvar();
   renderMapa();
 }
 
-function excluirArea(a) {
-  if (!confirm('Excluir esta área e todas as ruas?')) return;
-
-  mapa.splice(a, 1);
-  salvar();
-  renderMapa();
-}
-
-// =======================
 // RUA
-// =======================
 function criarRua(a) {
   const nome = prompt('Nome da rua');
-  if (!nome) return;
-
   const qtd = Number(prompt('Quantidade de endereços'));
-  if (!qtd || qtd <= 0) {
-    alert('Quantidade inválida');
-    return;
-  }
+
+  if (!nome || qtd <= 0) return;
 
   mapa[a].ruas.push({
     nome,
@@ -66,17 +40,7 @@ function criarRua(a) {
   renderMapa();
 }
 
-function excluirRua(a, r) {
-  if (!confirm('Excluir esta rua?')) return;
-
-  mapa[a].ruas.splice(r, 1);
-  salvar();
-  renderMapa();
-}
-
-// =======================
-// MAPA VISUAL
-// =======================
+// MAPA
 function renderMapa() {
   mapaDiv.innerHTML = '';
 
@@ -84,66 +48,30 @@ function renderMapa() {
     const areaDiv = document.createElement('div');
     areaDiv.className = 'area';
 
-    // Cabeçalho da área
-    const header = document.createElement('div');
-    header.style.display = 'flex';
-    header.style.justifyContent = 'space-between';
-    header.style.alignItems = 'center';
+    areaDiv.innerHTML = `<strong>${area.nome}</strong>`;
 
-    const titulo = document.createElement('strong');
-    titulo.textContent = area.nome;
-
-    const btnExcluirArea = document.createElement('button');
-    btnExcluirArea.textContent = 'Excluir Área';
-    btnExcluirArea.className = 'danger';
-    btnExcluirArea.onclick = () => excluirArea(a);
-
-    header.appendChild(titulo);
-    header.appendChild(btnExcluirArea);
-    areaDiv.appendChild(header);
-
-    // Ruas
     area.ruas.forEach((rua, r) => {
       const ruaDiv = document.createElement('div');
       ruaDiv.className = 'rua';
+      ruaDiv.innerHTML = `Rua ${rua.nome}`;
 
-      const ruaHeader = document.createElement('div');
-      ruaHeader.style.display = 'flex';
-      ruaHeader.style.justifyContent = 'space-between';
-      ruaHeader.style.alignItems = 'center';
-
-      ruaHeader.innerHTML = `<span>Rua ${rua.nome}</span>`;
-
-      const btnExcluirRua = document.createElement('button');
-      btnExcluirRua.textContent = 'Excluir Rua';
-      btnExcluirRua.className = 'danger';
-      btnExcluirRua.onclick = () => excluirRua(a, r);
-
-      ruaHeader.appendChild(btnExcluirRua);
-      ruaDiv.appendChild(ruaHeader);
-
-      // Endereços
-      const posicoesDiv = document.createElement('div');
-      posicoesDiv.className = 'posicoes';
+      const posDiv = document.createElement('div');
+      posDiv.className = 'posicoes';
 
       rua.posicoes.forEach((pos, p) => {
-        const posDiv = document.createElement('div');
-        posDiv.className = 'posicao';
+        const d = document.createElement('div');
+        d.className = 'posicao';
 
-        if (pos) {
-          posDiv.classList.add('ocupada');
-          posDiv.title = `RZ: ${pos.rz}`;
-        }
+        if (pos) d.classList.add('ocupada');
 
-        posDiv.onclick = () => abrirModal(a, r, p);
-        posicoesDiv.appendChild(posDiv);
+        d.onclick = () => abrirModal(a, r, p);
+        posDiv.appendChild(d);
       });
 
-      ruaDiv.appendChild(posicoesDiv);
+      ruaDiv.appendChild(posDiv);
       areaDiv.appendChild(ruaDiv);
     });
 
-    // Botão criar rua
     const btnRua = document.createElement('button');
     btnRua.textContent = 'Adicionar Rua';
     btnRua.onclick = () => criarRua(a);
@@ -153,16 +81,13 @@ function renderMapa() {
   });
 }
 
-// =======================
 // MODAL
-// =======================
 function abrirModal(a, r, p) {
   posicaoAtual = { a, r, p };
   const pos = mapa[a].ruas[r].posicoes[p];
 
   modalRz.value = pos?.rz || '';
   modalVolume.value = pos?.volume || '';
-
   modal.classList.remove('hidden');
 }
 
@@ -170,45 +95,29 @@ function fecharModal() {
   modal.classList.add('hidden');
 }
 
-// =======================
-// SALVAR ENDEREÇO
-// =======================
+// ENDEREÇAR
 function salvarEndereco() {
   const rz = modalRz.value.trim();
-  const volume = modalVolume.value.trim() || null;
-
-  if (!rz) {
-    alert('RZ é obrigatório');
-    return;
-  }
+  if (!rz) return alert('RZ é obrigatório');
 
   const { a, r, p } = posicaoAtual;
 
   if (mapa[a].ruas[r].posicoes[p]) {
-    alert('Endereço já ocupado');
-    return;
+    return alert('Endereço já ocupado');
   }
 
-  mapa[a].ruas[r].posicoes[p] = { rz, volume };
+  mapa[a].ruas[r].posicoes[p] = {
+    rz,
+    volume: modalVolume.value || null
+  };
 
   salvar();
   fecharModal();
   renderMapa();
 }
 
-// =======================
-// REMOVER ENDEREÇO
-// =======================
 function removerEndereco() {
   const { a, r, p } = posicaoAtual;
-
-  if (!mapa[a].ruas[r].posicoes[p]) {
-    alert('Endereço já está vazio');
-    return;
-  }
-
-  if (!confirm('Remover gaylord deste endereço?')) return;
-
   mapa[a].ruas[r].posicoes[p] = null;
 
   salvar();
@@ -216,7 +125,5 @@ function removerEndereco() {
   renderMapa();
 }
 
-// =======================
 // INIT
-// =======================
 renderMapa();
