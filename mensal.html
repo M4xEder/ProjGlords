@@ -2,41 +2,61 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Relatório Mensal</title>
+<title>Relatório Mensal de Expedições</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body {
   font-family: Arial, sans-serif;
-  background:#f4f4f4;
-  padding:20px;
+  background: #f4f4f4;
+  padding: 20px;
 }
+
+h1, h2 {
+  margin-bottom: 10px;
+}
+
 .box {
-  background:#fff;
-  padding:15px;
-  border-radius:6px;
-  margin-bottom:15px;
+  background: #fff;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 15px;
 }
-table {
-  width:100%;
-  border-collapse:collapse;
-  background:#fff;
+
+button {
+  padding: 6px 12px;
+  cursor: pointer;
 }
-th,td {
-  border:1px solid #ccc;
-  padding:8px;
-}
-th { background:#eee; }
+
 .resumo {
-  display:flex;
-  gap:15px;
-  flex-wrap:wrap;
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
 }
+
 .card {
-  background:#fafafa;
-  padding:10px;
-  border-radius:6px;
-  min-width:180px;
+  background: #fff;
+  padding: 12px;
+  border-radius: 6px;
+  min-width: 180px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  margin-bottom: 20px;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background: #eee;
 }
 </style>
 </head>
@@ -46,56 +66,68 @@ th { background:#eee; }
 <h1>📅 Relatório Mensal de Expedições</h1>
 
 <div class="box">
-  <label>Mês:
+  <label>
+    Mês:
     <input type="month" id="mesSelecionado">
   </label>
+
   <button onclick="gerarRelatorio()">Gerar Relatório</button>
-  <button onclick="exportarCSV()">📤 Exportar CSV</button>
+  <button onclick="exportarExcel()">📊 Exportar Excel</button>
 </div>
 
 <div class="resumo" id="resumo"></div>
 
-<h2>Ranking por Lote</h2>
+<h2>📦 Ranking por Lote</h2>
 <table>
-<thead>
-<tr>
-  <th>Lote</th>
-  <th>Quantidade Expedida</th>
-</tr>
-</thead>
-<tbody id="ranking"></tbody>
+  <thead>
+    <tr>
+      <th>Lote</th>
+      <th>Quantidade Expedida</th>
+    </tr>
+  </thead>
+  <tbody id="ranking"></tbody>
 </table>
 
-<h2>Detalhamento do Mês</h2>
+<h2>📋 Detalhamento do Mês</h2>
 <table>
-<thead>
-<tr>
-  <th>Data</th>
-  <th>Hora</th>
-  <th>Lote</th>
-  <th>RZ</th>
-  <th>Volume</th>
-  <th>Tipo</th>
-</tr>
-</thead>
-<tbody id="detalhes"></tbody>
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Hora</th>
+      <th>Lote</th>
+      <th>RZ</th>
+      <th>Volume</th>
+      <th>Tipo</th>
+    </tr>
+  </thead>
+  <tbody id="detalhes"></tbody>
 </table>
-  
-  <button onclick="exportarExcel()">📊 Exportar Excel</button>
+
+<!-- BIBLIOTECA EXCEL (OBRIGATÓRIA) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
-const historico = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
+// =======================
+// DADOS
+// =======================
+const historico = JSON.parse(localStorage.getItem('historicoExpedidos')) ||;
 
+// =======================
+// GERAR RELATÓRIO
+// =======================
 function gerarRelatorio() {
-  const mes = document.getElementById('mesSelecionado').value;
-  if(!mes) return alert('Selecione o mês');
+  const mesInput = document.getElementById('mesSelecionado').value;
+  if (!mesInput) {
+    alert('Selecione o mês');
+    return;
+  }
 
-  const [ano, mesNum] = mes.split('-');
-  const resumo = document.getElementById('resumo');
+  const [ano, mes] = mesInput.split('-');
+  const resumoDiv = document.getElementById('resumo');
   const rankingBody = document.getElementById('ranking');
   const detalhesBody = document.getElementById('detalhes');
 
-  resumo.innerHTML = '';
+  resumoDiv.innerHTML = '';
   rankingBody.innerHTML = '';
   detalhesBody.innerHTML = '';
 
@@ -106,9 +138,9 @@ function gerarRelatorio() {
 
   historico.forEach(h => {
     const data = new Date(h.dataHora || `${h.data} ${h.hora}`);
-    if(data.getFullYear() != ano || data.getMonth()+1 != mesNum) return;
+    if (data.getFullYear() != ano || data.getMonth() + 1 != mes) return;
 
-    if(h.parcial) parciais++;
+    if (h.parcial) parciais++;
     else completos++;
 
     ranking[h.lote] = (ranking[h.lote] || 0) + h.detalhes.length;
@@ -137,7 +169,7 @@ function gerarRelatorio() {
     `;
   });
 
-  resumo.innerHTML = `
+  resumoDiv.innerHTML = `
     <div class="card">📦 Total expedido: <strong>${total}</strong></div>
     <div class="card">📁 Lotes envolvidos: <strong>${Object.keys(ranking).length}</strong></div>
     <div class="card">🟡 Parciais: <strong>${parciais}</strong></div>
@@ -145,18 +177,65 @@ function gerarRelatorio() {
   `;
 }
 
-function exportarCSV() {
-  let csv = 'Data,Hora,Lote,RZ,Volume,Tipo\n';
-  document.querySelectorAll('#detalhes tr').forEach(tr => {
-    const cols = [...tr.children].map(td => `"${td.innerText}"`);
-    csv += cols.join(',') + '\n';
+// =======================
+// EXPORTAR EXCEL
+// =======================
+function exportarExcel() {
+  const mesInput = document.getElementById('mesSelecionado').value;
+  if (!mesInput) {
+    alert('Selecione o mês');
+    return;
+  }
+
+  const [ano, mes] = mesInput.split('-');
+
+  let total = 0;
+  let parciais = 0;
+  let completos = 0;
+  const lotesResumo = {};
+  const detalhes = [];
+
+  historico.forEach(h => {
+    const data = new Date(h.dataHora || `${h.data} ${h.hora}`);
+    if (data.getFullYear() != ano || data.getMonth() + 1 != mes) return;
+
+    if (h.parcial) parciais++;
+    else completos++;
+
+    lotesResumo[h.lote] = (lotesResumo[h.lote] || 0) + h.detalhes.length;
+
+    h.detalhes.forEach(d => {
+      total++;
+      detalhes.push({
+        Data: data.toLocaleDateString(),
+        Hora: data.toLocaleTimeString(),
+        Lote: h.lote,
+        RZ: d.rz,
+        Volume: d.volume || '',
+        Tipo: h.parcial ? 'Parcial' : 'Total'
+      });
+    });
   });
 
-  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'relatorio_mensal.csv';
-  link.click();
+  const abaResumo = [
+    { Indicador: 'Total expedido', Valor: total },
+    { Indicador: 'Lotes envolvidos', Valor: Object.keys(lotesResumo).length },
+    { Indicador: 'Expedições parciais', Valor: parciais },
+    { Indicador: 'Expedições completas', Valor: completos }
+  ];
+
+  const abaLotes = Object.entries(lotesResumo).map(([lote, qtd]) => ({
+    Lote: lote,
+    Quantidade: qtd
+  }));
+
+  const wb = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(abaResumo), 'Resumo');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(abaLotes), 'Lotes');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalhes), 'Detalhes');
+
+  XLSX.writeFile(wb, `relatorio_${mes}_${ano}.xlsx`);
 }
 </script>
 
