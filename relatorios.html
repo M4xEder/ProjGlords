@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Relatórios de Gaylords</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+
+    h1, h2 {
+      margin-bottom: 10px;
+    }
+
+    .filtros {
+      background: #fff;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    select, button {
+      padding: 6px 10px;
+    }
+
+    .resumo {
+      background: #fff;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background: #eee;
+    }
+
+    .status-ativo {
+      color: green;
+      font-weight: bold;
+    }
+
+    .status-expedido {
+      color: #b91c1c;
+      font-weight: bold;
+    }
+
+    .acoes {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>📊 Relatórios de Gaylords</h1>
+
+<div class="filtros">
+  <label>
+    Lote:
+    <select id="filtroLote"></select>
+  </label>
+
+  <button onclick="gerarRelatorio()">Gerar Relatório</button>
+  <button onclick="exportarCSV()">📤 Exportar CSV</button>
+</div>
+
+<div id="resumo" class="resumo"></div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Lote</th>
+      <th>Área</th>
+      <th>Rua</th>
+      <th>Endereço</th>
+      <th>RZ</th>
+      <th>Volume</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody id="tabelaRelatorio"></tbody>
+</table>
+
+<script>
+/* =======================
+   CARREGAMENTO INICIAL
+======================= */
+const mapa = JSON.parse(localStorage.getItem('mapa')) || [];
+const lotes = JSON.parse(localStorage.getItem('lotes')) || {};
+const historico = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
+
+const filtroLote = document.getElementById('filtroLote');
+const tabela = document.getElementById('tabelaRelatorio');
+const resumo = document.getElementById('resumo');
+
+function carregarFiltro() {
+  filtroLote.innerHTML = '<option value="">Todos os lotes</option>';
+
+  Object.keys(lotes).forEach(lote => {
+    const opt = document.createElement('option');
+    opt.value = lote;
+    opt.textContent = lote + ' (Ativo)';
+    filtroLote.appendChild(opt);
+  });
+
+  historico.forEach(h => {
+    const opt = document.createElement('option');
+    opt.value = h.lote;
+    opt.textContent = h.lote + ' (Expedido)';
+    filtroLote.appendChild(opt);
+  });
+}
+
+carregarFiltro();
+
+/* =======================
+   GERAR RELATÓRIO
+======================= */
+function gerarRelatorio() {
+  tabela.innerHTML = '';
+  resumo.innerHTML = '';
+
+  const filtro = filtroLote.value;
+  let total = 0;
+  let ativos = 0;
+  let expedidos = 0;
+
+  mapa.forEach(area => {
+    area.ruas.forEach(rua => {
+      rua.posicoes.forEach((pos, i) => {
+        if (!pos) return;
+        if (filtro && pos.lote !== filtro) return;
+
+        total++;
+        ativos++;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${pos.lote}</td>
+          <td>${area.nome}</td>
+          <td>${rua.nome}</td>
+          <td>${i + 1}</td>
+          <td>${pos.rz}</td>
+          <td>${pos.volume || '-'}</td>
+          <td class="status-ativo">Ativo</td>
+        `;
+        tabela.appendChild(tr);
+      });
+    });
+  });
+
+  historico.forEach(h => {
+    if (filtro && h.lote !== filtro) return;
+
+    h.detalhes?.forEach(d => {
+      total++;
+      expedidos++;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${h.lote}</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>${d.rz}</td>
+        <td>${d.volume || '-'}</td>
+        <td class="status-expedido">Expedido</td>
+      `;
+      tabela.appendChild(tr);
+    });
+  });
+
+  resumo.innerHTML = `
+    <strong>Total de registros:</strong> ${total}<br>
+    <strong>Ativos:</strong> ${ativos}<br>
+    <strong>Expedidos:</strong> ${expedidos}
+  `;
+}
+
+/* =======================
+   EXPORTAR CSV
+======================= */
+function exportarCSV() {
+  let csv = 'Lote,Área,Rua,Endereço,RZ,Volume,Status\n';
+
+  document.querySelectorAll('#tabelaRelatorio tr').forEach(tr => {
+    const cols = [...tr.children].map(td => `"${td.innerText}"`);
+    csv += cols.join(',') + '\n';
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'relatorio_gaylords.csv';
+  link.click();
+}
+</script>
+
+</body>
+</html>
