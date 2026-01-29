@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relatório Mensal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background:#f4f4f4;
+  padding:20px;
+}
+.box {
+  background:#fff;
+  padding:15px;
+  border-radius:6px;
+  margin-bottom:15px;
+}
+table {
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+}
+th,td {
+  border:1px solid #ccc;
+  padding:8px;
+}
+th { background:#eee; }
+.resumo {
+  display:flex;
+  gap:15px;
+  flex-wrap:wrap;
+}
+.card {
+  background:#fafafa;
+  padding:10px;
+  border-radius:6px;
+  min-width:180px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📅 Relatório Mensal de Expedições</h1>
+
+<div class="box">
+  <label>Mês:
+    <input type="month" id="mesSelecionado">
+  </label>
+  <button onclick="gerarRelatorio()">Gerar Relatório</button>
+  <button onclick="exportarCSV()">📤 Exportar CSV</button>
+</div>
+
+<div class="resumo" id="resumo"></div>
+
+<h2>Ranking por Lote</h2>
+<table>
+<thead>
+<tr>
+  <th>Lote</th>
+  <th>Quantidade Expedida</th>
+</tr>
+</thead>
+<tbody id="ranking"></tbody>
+</table>
+
+<h2>Detalhamento do Mês</h2>
+<table>
+<thead>
+<tr>
+  <th>Data</th>
+  <th>Hora</th>
+  <th>Lote</th>
+  <th>RZ</th>
+  <th>Volume</th>
+  <th>Tipo</th>
+</tr>
+</thead>
+<tbody id="detalhes"></tbody>
+</table>
+
+<script>
+const historico = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
+
+function gerarRelatorio() {
+  const mes = document.getElementById('mesSelecionado').value;
+  if(!mes) return alert('Selecione o mês');
+
+  const [ano, mesNum] = mes.split('-');
+  const resumo = document.getElementById('resumo');
+  const rankingBody = document.getElementById('ranking');
+  const detalhesBody = document.getElementById('detalhes');
+
+  resumo.innerHTML = '';
+  rankingBody.innerHTML = '';
+  detalhesBody.innerHTML = '';
+
+  let total = 0;
+  let parciais = 0;
+  let completos = 0;
+  const ranking = {};
+
+  historico.forEach(h => {
+    const data = new Date(h.dataHora || `${h.data} ${h.hora}`);
+    if(data.getFullYear() != ano || data.getMonth()+1 != mesNum) return;
+
+    if(h.parcial) parciais++;
+    else completos++;
+
+    ranking[h.lote] = (ranking[h.lote] || 0) + h.detalhes.length;
+
+    h.detalhes.forEach(d => {
+      total++;
+      detalhesBody.innerHTML += `
+        <tr>
+          <td>${data.toLocaleDateString()}</td>
+          <td>${data.toLocaleTimeString()}</td>
+          <td>${h.lote}</td>
+          <td>${d.rz}</td>
+          <td>${d.volume || '-'}</td>
+          <td>${h.parcial ? 'Parcial' : 'Total'}</td>
+        </tr>
+      `;
+    });
+  });
+
+  Object.entries(ranking).forEach(([lote, qtd]) => {
+    rankingBody.innerHTML += `
+      <tr>
+        <td>${lote}</td>
+        <td>${qtd}</td>
+      </tr>
+    `;
+  });
+
+  resumo.innerHTML = `
+    <div class="card">📦 Total expedido: <strong>${total}</strong></div>
+    <div class="card">📁 Lotes envolvidos: <strong>${Object.keys(ranking).length}</strong></div>
+    <div class="card">🟡 Parciais: <strong>${parciais}</strong></div>
+    <div class="card">🔴 Completos: <strong>${completos}</strong></div>
+  `;
+}
+
+function exportarCSV() {
+  let csv = 'Data,Hora,Lote,RZ,Volume,Tipo\n';
+  document.querySelectorAll('#detalhes tr').forEach(tr => {
+    const cols = [...tr.children].map(td => `"${td.innerText}"`);
+    csv += cols.join(',') + '\n';
+  });
+
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'relatorio_mensal.csv';
+  link.click();
+}
+</script>
+
+</body>
+</html>
