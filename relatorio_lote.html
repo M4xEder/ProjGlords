@@ -88,22 +88,39 @@ th {
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
+  
+  // =======================
+// HISTÓRICO SEGURO
 // =======================
-// DADOS
-// =======================
-const historico = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
+function carregarHistoricoSeguro() {
+  const bruto = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
+
+  return bruto
+    .filter(h => h && h.lote)
+    .map(h => ({
+      lote: h.lote,
+      dataHora: h.dataHora || new Date().toISOString(),
+      parcial: !!h.parcial,
+      detalhes: Array.isArray(h.detalhes)
+        ? h.detalhes.filter(d => d && d.rz)
+        : []
+    }))
+    .filter(h => h.detalhes.length > 0);
+}
+
+const historico = carregarHistoricoSeguro();
 
 // =======================
-// INIT SELECT
+// SELECT DE LOTES
 // =======================
 const select = document.getElementById('loteSelecionado');
-const lotes = [...new Set(historico.map(h => h.lote))];
+const lotesUnicos = [...new Set(historico.map(h => h.lote))];
 
 select.innerHTML = '<option value="">Selecione</option>';
-lotes.forEach(l => {
+lotesUnicos.forEach(lote => {
   const opt = document.createElement('option');
-  opt.value = l;
-  opt.textContent = l;
+  opt.value = lote;
+  opt.textContent = lote;
   select.appendChild(opt);
 });
 
@@ -112,13 +129,16 @@ lotes.forEach(l => {
 // =======================
 function gerarRelatorio() {
   const lote = select.value;
-  if (!lote) return alert('Selecione um lote');
+  if (!lote) {
+    alert('Selecione um lote');
+    return;
+  }
 
-  const resumoDiv = document.getElementById('resumo');
-  const detalhesBody = document.getElementById('detalhes');
+  const resumo = document.getElementById('resumo');
+  const tbody = document.getElementById('detalhes');
 
-  resumoDiv.innerHTML = '';
-  detalhesBody.innerHTML = '';
+  resumo.innerHTML = '';
+  tbody.innerHTML = '';
 
   let total = 0;
   let parciais = 0;
@@ -130,11 +150,11 @@ function gerarRelatorio() {
       if (h.parcial) parciais++;
       else completos++;
 
-      const data = new Date(h.dataHora || `${h.data} ${h.hora}`);
+      const data = new Date(h.dataHora);
 
       h.detalhes.forEach(d => {
         total++;
-        detalhesBody.innerHTML += `
+        tbody.innerHTML += `
           <tr>
             <td>${data.toLocaleDateString()}</td>
             <td>${data.toLocaleTimeString()}</td>
@@ -146,13 +166,12 @@ function gerarRelatorio() {
       });
     });
 
-  resumoDiv.innerHTML = `
+  resumo.innerHTML = `
     <div class="card">📦 Total expedido: <strong>${total}</strong></div>
     <div class="card">🟡 Parciais: <strong>${parciais}</strong></div>
     <div class="card">🔴 Completos: <strong>${completos}</strong></div>
   `;
 }
-
 // =======================
 // EXPORTAR EXCEL
 // =======================
