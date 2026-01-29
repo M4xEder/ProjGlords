@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relatório por Lote</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background:#f4f4f4;
+  padding:20px;
+}
+
+.box {
+  background:#fff;
+  padding:15px;
+  border-radius:6px;
+  margin-bottom:15px;
+}
+
+button {
+  padding:6px 12px;
+  cursor:pointer;
+}
+
+table {
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+}
+
+th, td {
+  border:1px solid #ccc;
+  padding:8px;
+}
+
+th {
+  background:#eee;
+}
+
+.resumo {
+  display:flex;
+  gap:15px;
+  margin-bottom:15px;
+  flex-wrap:wrap;
+}
+
+.card {
+  background:#fafafa;
+  padding:10px;
+  border-radius:6px;
+  min-width:180px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📦 Relatório Individual por Lote</h1>
+
+<div class="box">
+  <label>
+    Lote:
+    <select id="loteSelecionado"></select>
+  </label>
+
+  <button onclick="gerarRelatorio()">Gerar Relatório</button>
+  <button onclick="exportarExcel()">📊 Exportar Excel</button>
+</div>
+
+<div class="resumo" id="resumo"></div>
+
+<table>
+<thead>
+<tr>
+  <th>Data</th>
+  <th>Hora</th>
+  <th>RZ</th>
+  <th>Volume</th>
+  <th>Tipo</th>
+</tr>
+</thead>
+<tbody id="detalhes"></tbody>
+</table>
+
+<!-- LIB EXCEL -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<script>
+// =======================
+// DADOS
+// =======================
+const historico = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
+
+// =======================
+// INIT SELECT
+// =======================
+const select = document.getElementById('loteSelecionado');
+const lotes = [...new Set(historico.map(h => h.lote))];
+
+select.innerHTML = '<option value="">Selecione</option>';
+lotes.forEach(l => {
+  const opt = document.createElement('option');
+  opt.value = l;
+  opt.textContent = l;
+  select.appendChild(opt);
+});
+
+// =======================
+// GERAR RELATÓRIO
+// =======================
+function gerarRelatorio() {
+  const lote = select.value;
+  if (!lote) return alert('Selecione um lote');
+
+  const resumoDiv = document.getElementById('resumo');
+  const detalhesBody = document.getElementById('detalhes');
+
+  resumoDiv.innerHTML = '';
+  detalhesBody.innerHTML = '';
+
+  let total = 0;
+  let parciais = 0;
+  let completos = 0;
+
+  historico
+    .filter(h => h.lote === lote)
+    .forEach(h => {
+      if (h.parcial) parciais++;
+      else completos++;
+
+      const data = new Date(h.dataHora || `${h.data} ${h.hora}`);
+
+      h.detalhes.forEach(d => {
+        total++;
+        detalhesBody.innerHTML += `
+          <tr>
+            <td>${data.toLocaleDateString()}</td>
+            <td>${data.toLocaleTimeString()}</td>
+            <td>${d.rz}</td>
+            <td>${d.volume || '-'}</td>
+            <td>${h.parcial ? 'Parcial' : 'Total'}</td>
+          </tr>
+        `;
+      });
+    });
+
+  resumoDiv.innerHTML = `
+    <div class="card">📦 Total expedido: <strong>${total}</strong></div>
+    <div class="card">🟡 Parciais: <strong>${parciais}</strong></div>
+    <div class="card">🔴 Completos: <strong>${completos}</strong></div>
+  `;
+}
+
+// =======================
+// EXPORTAR EXCEL
+// =======================
+function exportarExcel() {
+  const lote = select.value;
+  if (!lote) return alert('Selecione um lote');
+
+  const detalhes = [];
+  let parciais = 0;
+  let completos = 0;
+
+  historico
+    .filter(h => h.lote === lote)
+    .forEach(h => {
+      if (h.parcial) parciais++;
+      else completos++;
+
+      const data = new Date(h.dataHora || `${h.data} ${h.hora}`);
+
+      h.detalhes.forEach(d => {
+        detalhes.push({
+          Data: data.toLocaleDateString(),
+          Hora: data.toLocaleTimeString(),
+          RZ: d.rz,
+          Volume: d.volume || '',
+          Tipo: h.parcial ? 'Parcial' : 'Total'
+        });
+      });
+    });
+
+  const abaResumo = [
+    { Indicador: 'Lote', Valor: lote },
+    { Indicador: 'Total expedido', Valor: detalhes.length },
+    { Indicador: 'Parciais', Valor: parciais },
+    { Indicador: 'Completos', Valor: completos }
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(abaResumo), 'Resumo');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalhes), 'Detalhes');
+
+  XLSX.writeFile(wb, `relatorio_${lote}.xlsx`);
+}
+</script>
+
+</body>
+</html>
