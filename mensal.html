@@ -108,135 +108,175 @@ th {
 
 <script>
 // =======================
-// DADOS
+// ESTADO GLOBAL
 // =======================
-const historico = JSON.parse(localStorage.getItem('historicoExpedidos')) ||;
+let mapa = JSON.parse(localStorage.getItem('mapa')) || [];
+let lotes = JSON.parse(localStorage.getItem('lotes')) || {};
+let historicoExpedidos = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
+let posicaoAtual = null;
 
 // =======================
-// GERAR RELATÓRIO
+// UTIL
 // =======================
-function gerarRelatorio() {
-  const mesInput = document.getElementById('mesSelecionado').value;
-  if (!mesInput) {
-    alert('Selecione o mês');
-    return;
-  }
+function salvarTudo() {
+  localStorage.setItem('mapa', JSON.stringify(mapa));
+  localStorage.setItem('lotes', JSON.stringify(lotes));
+  localStorage.setItem('historicoExpedidos', JSON.stringify(historicoExpedidos));
+}
 
-  const [ano, mes] = mesInput.split('-');
-  const resumoDiv = document.getElementById('resumo');
-  const rankingBody = document.getElementById('ranking');
-  const detalhesBody = document.getElementById('detalhes');
-
-  resumoDiv.innerHTML = '';
-  rankingBody.innerHTML = '';
-  detalhesBody.innerHTML = '';
-
-  let total = 0;
-  let parciais = 0;
-  let completos = 0;
-  const ranking = {};
-
-  historico.forEach(h => {
-    const data = new Date(h.dataHora || `${h.data} ${h.hora}`);
-    if (data.getFullYear() != ano || data.getMonth() + 1 != mes) return;
-
-    if (h.parcial) parciais++;
-    else completos++;
-
-    ranking[h.lote] = (ranking[h.lote] || 0) + h.detalhes.length;
-
-    h.detalhes.forEach(d => {
-      total++;
-      detalhesBody.innerHTML += `
-        <tr>
-          <td>${data.toLocaleDateString()}</td>
-          <td>${data.toLocaleTimeString()}</td>
-          <td>${h.lote}</td>
-          <td>${d.rz}</td>
-          <td>${d.volume || '-'}</td>
-          <td>${h.parcial ? 'Parcial' : 'Total'}</td>
-        </tr>
-      `;
-    });
-  });
-
-  Object.entries(ranking).forEach(([lote, qtd]) => {
-    rankingBody.innerHTML += `
-      <tr>
-        <td>${lote}</td>
-        <td>${qtd}</td>
-      </tr>
-    `;
-  });
-
-  resumoDiv.innerHTML = `
-    <div class="card">📦 Total expedido: <strong>${total}</strong></div>
-    <div class="card">📁 Lotes envolvidos: <strong>${Object.keys(ranking).length}</strong></div>
-    <div class="card">🟡 Parciais: <strong>${parciais}</strong></div>
-    <div class="card">🔴 Completos: <strong>${completos}</strong></div>
-  `;
+function gerarCor() {
+  return `hsl(${Math.random() * 360},70%,70%)`;
 }
 
 // =======================
-// EXPORTAR EXCEL
+// CONTADOR DE ALOCADOS
 // =======================
-function exportarExcel() {
-  const mesInput = document.getElementById('mesSelecionado').value;
-  if (!mesInput) {
-    alert('Selecione o mês');
-    return;
-  }
-
-  const [ano, mes] = mesInput.split('-');
-
+function contarAlocados(lote) {
   let total = 0;
-  let parciais = 0;
-  let completos = 0;
-  const lotesResumo = {};
+  mapa.forEach(a =>
+    a.ruas.forEach(r =>
+      r.posicoes.forEach(p => {
+        if (p && p.lote === lote) total++;
+      })
+    )
+  );
+  return total;
+}
+
+// =======================
+// CADASTRO DE LOTE
+// =======================
+function cadastrarLote(nome, total) {
+  if (!nome || total <= 0) return alert('Dados inválidos');
+
+  lotes[nome] = {
+    total,
+    cor: gerarCor()
+  };
+
+  salvarTudo();
+  renderLotes();
+}
+
+// =======================
+// EXPEDIÇÃO (FUNÇÃO CRÍTICA)
+// =======================
+function expedirLote(nomeLote) {
+  if (!lotes[nomeLote]) return;
+
+  const totalLote = lotes[nomeLote].total;
   const detalhes = [];
 
-  historico.forEach(h => {
-    const data = new Date(h.dataHora || `${h.data} ${h.hora}`);
-    if (data.getFullYear() != ano || data.getMonth() + 1 != mes) return;
+  // coleta todas as gaylords alocadas
+  mapa.forEach(area =>
+    area.ruas.forEach(rua =>
+      rua.posicoes.forEach((pos, i) => {
+        if (pos && pos.lote === nomeLote) {
+          detalhes.push({
+            rz: pos.rz,
+            volume: pos.volume || ''
+          });
+          rua.posicoes[i] = null; // remove do endereço
+        }
+      })
+    )
+  );
 
-    if (h.parcial) parciais++;
-    else completos++;
+  if (detalhes.length === 0) {
+    alert('Nenhuma gaylord alocada neste lote');
+    return;
+  }
 
-    lotesResumo[h.lote] = (lotesResumo[h.lote] || 0) + h.detalhes.length;
+  const parcial = detalhes.length < totalLote;
 
-    h.detalhes.forEach(d => {
-      total++;
-      detalhes.push({
-        Data: data.toLocaleDateString(),
-        Hora: data.toLocaleTimeString(),
-        Lote: h.lote,
-        RZ: d.rz,
-        Volume: d.volume || '',
-        Tipo: h.parcial ? 'Parcial' : 'Total'
-      });
-    });
+  // 🔥 SALVA HISTÓRICO CORRETO
+  historicoExpedidos.push({
+    lote: nomeLote,
+    dataHora: new Date().toISOString(),
+    parcial,
+    detalhes
   });
 
-  const abaResumo = [
-    { Indicador: 'Total expedido', Valor: total },
-    { Indicador: 'Lotes envolvidos', Valor: Object.keys(lotesResumo).length },
-    { Indicador: 'Expedições parciais', Valor: parciais },
-    { Indicador: 'Expedições completas', Valor: completos }
-  ];
+  // se foi total, remove o lote
+  if (!parcial) {
+    delete lotes[nomeLote];
+  } else {
+    // se parcial, atualiza quantidade restante
+    lotes[nomeLote].total -= detalhes.length;
+  }
 
-  const abaLotes = Object.entries(lotesResumo).map(([lote, qtd]) => ({
-    Lote: lote,
-    Quantidade: qtd
-  }));
-
-  const wb = XLSX.utils.book_new();
-
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(abaResumo), 'Resumo');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(abaLotes), 'Lotes');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalhes), 'Detalhes');
-
-  XLSX.writeFile(wb, `relatorio_${mes}_${ano}.xlsx`);
+  salvarTudo();
+  renderMapa();
+  renderLotes();
+  renderExpedidos();
 }
+
+// =======================
+// RENDER LOTES ATIVOS
+// =======================
+function renderLotes() {
+  const div = document.getElementById('lotesAtivos');
+  if (!div) return;
+
+  div.innerHTML = '';
+
+  Object.entries(lotes).forEach(([nome, data]) => {
+    const alocados = contarAlocados(nome);
+
+    const card = document.createElement('div');
+    card.className = 'lote-card';
+    card.innerHTML = `
+      <strong>${nome}</strong><br>
+      ${alocados} / ${data.total}<br>
+      <button onclick="expedirLote('${nome}')">📤 Expedir</button>
+    `;
+    card.style.borderLeft = `6px solid ${data.cor}`;
+
+    div.appendChild(card);
+  });
+}
+
+// =======================
+// RENDER EXPEDIDOS
+// =======================
+function renderExpedidos() {
+  const div = document.getElementById('lotesExpedidos');
+  if (!div) return;
+
+  div.innerHTML = '';
+
+  historicoExpedidos.forEach(h => {
+    const data = new Date(h.dataHora);
+
+    const card = document.createElement('div');
+    card.className = 'lote-card';
+    card.innerHTML = `
+      <strong>${h.lote}</strong><br>
+      ${h.parcial ? '🟡 Parcial' : '🔴 Total'}<br>
+      ${data.toLocaleDateString()} ${data.toLocaleTimeString()}
+      <details>
+        <summary>Ver RZ / Volumes</summary>
+        ${h.detalhes.map(d => `RZ: ${d.rz} | Vol: ${d.volume || '-'}`).join('<br>')}
+      </details>
+    `;
+
+    div.appendChild(card);
+  });
+}
+
+// =======================
+// MAPA (SIMPLIFICADO)
+// =======================
+function renderMapa() {
+  // Mantém seu render atual
+}
+
+// =======================
+// INIT
+// =======================
+renderMapa();
+renderLotes();
+renderExpedidos();
 </script>
 
 </body>
