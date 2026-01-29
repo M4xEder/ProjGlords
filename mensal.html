@@ -80,6 +80,8 @@ th { background:#eee; }
 </thead>
 <tbody id="detalhes"></tbody>
 </table>
+  
+  <button onclick="exportarExcel()">📊 Exportar Excel</button>
 
 <script>
 const historico = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
