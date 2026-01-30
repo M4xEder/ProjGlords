@@ -101,7 +101,7 @@ th { background:#eee; }
 
 <!-- LIB EXCEL -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script>
 /* =====================
    DADOS
@@ -113,7 +113,7 @@ const historicoExpedidos = JSON.parse(localStorage.getItem('historicoExpedidos')
 const select = document.getElementById('loteSelecionado');
 const resumo = document.getElementById('resumo');
 const tabela = document.getElementById('tabela');
-const mensagem = document.getElementById('mensagem');
+const mensagemParcial = document.getElementById('mensagemParcial');
 
 /* =====================
    CARREGAR LOTES
@@ -143,19 +143,19 @@ function gerarRelatorio() {
 
   tabela.innerHTML = '';
   resumo.innerHTML = '';
-  mensagem.style.display = 'none';
+  mensagemParcial.innerHTML = '';
 
   let totalCriado = 0;
   let expedidos = 0;
   let alocados = 0;
 
-  const hist = historicoExpedidos.filter(h => h.lote === lote);
-
-  if (hist.length > 0) totalCriado = hist[0].totalOriginal;
+  // TOTAL CRIADO
+  const histLote = historicoExpedidos.filter(h => h.lote === lote);
+  if (histLote.length > 0) totalCriado = histLote[0].totalOriginal;
   else if (lotes[lote]) totalCriado = lotes[lote].total;
 
-  /* EXPEDIDOS */
-  hist.forEach(h => {
+  // EXPEDIDOS
+  histLote.forEach(h => {
     expedidos += h.expedidos;
     h.detalhes.forEach(d => {
       tabela.innerHTML += `
@@ -164,12 +164,20 @@ function gerarRelatorio() {
           <td>-</td><td>-</td><td>-</td>
           <td>${d.rz}</td>
           <td>${d.volume || '-'}</td>
-        </tr>
-      `;
+        </tr>`;
     });
+
+    if (h.expedidos < h.totalOriginal) {
+      mensagemParcial.innerHTML += `
+        <div class="alerta">
+          ⚠️ Expedição parcial em ${h.data} ${h.hora}<br>
+          Total do lote: ${h.totalOriginal}<br>
+          Expedidas: ${h.expedidos}
+        </div>`;
+    }
   });
 
-  /* ALOCADOS */
+  // ALOCADAS (NÃO EXPEDIDAS)
   mapa.forEach(area => {
     area.ruas.forEach(rua => {
       rua.posicoes.forEach((pos, i) => {
@@ -183,90 +191,123 @@ function gerarRelatorio() {
             <td>${i + 1}</td>
             <td>${pos.rz}</td>
             <td>${pos.volume || '-'}</td>
-          </tr>
-        `;
+          </tr>`;
       });
     });
   });
 
+  // NÃO ALOCADAS
   const naoAlocadas = Math.max(totalCriado - expedidos - alocados, 0);
-
-  if (expedidos > 0 && naoAlocadas > 0) {
-    mensagem.style.display = 'block';
-    mensagem.innerHTML = `
-      ⚠️ Expedição parcial do lote <strong>${lote}</strong><br>
-      Total: ${totalCriado} gaylords<br>
-      ${expedidos} expedidas<br>
-      ${alocados} alocadas<br>
-      ${naoAlocadas} não foram alocadas (sem RZ e Volume)
-    `;
+  if (naoAlocadas > 0) {
+    mensagemParcial.innerHTML += `
+      <div class="alerta">
+        ℹ️ ${naoAlocadas} gaylords **não foram alocadas**
+        e não possuem RZ nem Volume.
+      </div>`;
   }
 
+  // STATUS
+  let status = 'Ativo';
+  if (expedidos > 0 && alocados > 0) status = 'Parcialmente expedido';
+  if (expedidos > 0 && alocados === 0) status = 'Totalmente expedido';
+
   resumo.innerHTML = `
-    <div class="card">📦 Total: <strong>${totalCriado}</strong></div>
-    <div class="card">🚚 Expedidas: <strong>${expedidos}</strong></div>
-    <div class="card">📍 Alocadas: <strong>${alocados}</strong></div>
-    <div class="card">❓ Não alocadas: <strong>${naoAlocadas}</strong></div>
+    <div class="card"><strong>Lote:</strong> ${lote}</div>
+    <div class="card"><strong>Status:</strong> ${status}</div>
+    <div class="card"><strong>Total criado:</strong> ${totalCriado}</div>
+    <div class="card"><strong>Expedidos:</strong> ${expedidos}</div>
+    <div class="card"><strong>Alocados:</strong> ${alocados}</div>
+    <div class="card"><strong>Não alocados:</strong> ${naoAlocadas}</div>
   `;
 }
 
 /* =====================
-   EXCEL LOTE
+   EXPORTAR CSV (LOTE)
 ===================== */
-function exportarExcelLote() {
+function exportarCSV() {
   if (!select.value) return alert('Selecione um lote');
 
-  const dados = [];
+  let csv = 'Status,Área,Rua,Endereço,RZ,Volume\n';
   document.querySelectorAll('#tabela tr').forEach(tr => {
-    const c = tr.children;
-    dados.push({
-      Status: c[0].innerText,
-      Área: c[1].innerText,
-      Rua: c[2].innerText,
-      Endereço: c[3].innerText,
-      RZ: c[4].innerText,
-      Volume: c[5].innerText
-    });
+    csv += [...tr.children].map(td => `"${td.innerText}"`).join(',') + '\n';
   });
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dados), 'Detalhes');
-  XLSX.writeFile(wb, `relatorio_${select.value}.xlsx`);
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `relatorio_${select.value}.csv`;
+  link.click();
 }
 
 /* =====================
-   EXCEL TODOS OS LOTES
+   EXPORTAR EXCEL (TODOS OS LOTES)
 ===================== */
 function exportarExcelTodos() {
   const wb = XLSX.utils.book_new();
-  select.querySelectorAll('option').forEach(opt => {
-    if (!opt.value) return;
-    select.value = opt.value;
-    gerarRelatorio();
+  const set = new Set();
 
+  Object.keys(lotes).forEach(l => set.add(l));
+  historicoExpedidos.forEach(h => set.add(h.lote));
+
+  set.forEach(lote => {
+    let totalCriado = 0;
+    let expedidos = 0;
+    let alocados = 0;
     const linhas = [];
-    document.querySelectorAll('#tabela tr').forEach(tr => {
-      const c = tr.children;
-      linhas.push({
-        Status: c[0].innerText,
-        Área: c[1].innerText,
-        Rua: c[2].innerText,
-        Endereço: c[3].innerText,
-        RZ: c[4].innerText,
-        Volume: c[5].innerText
+
+    const hist = historicoExpedidos.filter(h => h.lote === lote);
+    if (hist.length > 0) totalCriado = hist[0].totalOriginal;
+    else if (lotes[lote]) totalCriado = lotes[lote].total;
+
+    hist.forEach(h => {
+      expedidos += h.expedidos;
+      h.detalhes.forEach(d => {
+        linhas.push({
+          Status: 'Expedida',
+          Área: '-',
+          Rua: '-',
+          Endereço: '-',
+          RZ: d.rz,
+          Volume: d.volume || '-'
+        });
       });
     });
 
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(linhas),
-      `Lote_${opt.value}`.substring(0, 30)
-    );
+    mapa.forEach(area => {
+      area.ruas.forEach(rua => {
+        rua.posicoes.forEach((pos, i) => {
+          if (pos?.lote !== lote) return;
+          alocados++;
+          linhas.push({
+            Status: 'Alocada',
+            Área: area.nome,
+            Rua: rua.nome,
+            Endereço: i + 1,
+            RZ: pos.rz,
+            Volume: pos.volume || '-'
+          });
+        });
+      });
+    });
+
+    const naoAlocadas = Math.max(totalCriado - expedidos - alocados, 0);
+    for (let i = 0; i < naoAlocadas; i++) {
+      linhas.push({
+        Status: 'Não alocada',
+        Área: '-',
+        Rua: '-',
+        Endereço: '-',
+        RZ: '-',
+        Volume: '-'
+      });
+    }
+
+    const ws = XLSX.utils.json_to_sheet(linhas);
+    XLSX.utils.book_append_sheet(wb, ws, `Lote_${lote}`.substring(0, 31));
   });
 
   XLSX.writeFile(wb, 'relatorio_completo_por_lote.xlsx');
 }
 </script>
-
 </body>
 </html>
