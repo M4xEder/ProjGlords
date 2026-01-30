@@ -109,9 +109,7 @@ const historicoExpedidos = JSON.parse(localStorage.getItem('historicoExpedidos')
 const select = document.getElementById('loteSelecionado');
 const resumo = document.getElementById('resumo');
 const tabela = document.getElementById('tabela');
-const cabecalho = document.getElementById('cabecalho');
 const mensagemParcial = document.getElementById('mensagemParcial');
-const modoSelect = document.getElementById('modo');
 
 /* =====================
    CARREGAR LOTES
@@ -122,7 +120,7 @@ function carregarLotes() {
   Object.keys(lotes).forEach(lote => {
     const opt = document.createElement('option');
     opt.value = lote;
-    opt.textContent = lote + ' (Ativo)';
+    opt.textContent = `${lote} (Ativo)`;
     select.appendChild(opt);
   });
 
@@ -130,7 +128,7 @@ function carregarLotes() {
     if (![...select.options].some(o => o.value === h.lote)) {
       const opt = document.createElement('option');
       opt.value = h.lote;
-      opt.textContent = h.lote + ' (Expedido)';
+      opt.textContent = `${h.lote} (Expedido)`;
       select.appendChild(opt);
     }
   });
@@ -139,74 +137,53 @@ function carregarLotes() {
 carregarLotes();
 
 /* =====================
-   MODO
-===================== */
-function trocarModo() {
-  tabela.innerHTML = '';
-  cabecalho.innerHTML = '';
-  resumo.innerHTML = '';
-  mensagemParcial.innerHTML = '';
-}
-
-/* =====================
    GERAR RELATÓRIO
 ===================== */
 function gerarRelatorio() {
   const lote = select.value;
-  const modo = modoSelect.value;
-
-  if (!lote) return alert('Selecione um lote');
+  if (!lote) {
+    alert('Selecione um lote');
+    return;
+  }
 
   tabela.innerHTML = '';
   resumo.innerHTML = '';
   mensagemParcial.innerHTML = '';
 
-  let totalCriado = lotes[lote]?.total || 0;
-  let alocados = 0;
+  let totalCriado = 0;
   let expedidos = 0;
+  let alocados = 0;
 
   /* =====================
-     CABEÇALHO
+     TOTAL ORIGINAL DO LOTE
   ===================== */
-  cabecalho.innerHTML = `
-    <th>Status</th>
-    <th>Área</th>
-    <th>Rua</th>
-    <th>Endereço</th>
-    <th>RZ</th>
-    <th>Volume</th>
-  `;
+  const historicosDoLote = historicoExpedidos.filter(h => h.lote === lote);
+
+  if (historicosDoLote.length > 0) {
+    totalCriado = historicosDoLote[0].totalOriginal;
+  } else if (lotes[lote]) {
+    totalCriado = lotes[lote].total;
+  }
 
   /* =====================
      EXPEDIDOS
   ===================== */
-  historicoExpedidos
-    .filter(h => h.lote === lote)
-    .forEach(h => {
-      expedidos += h.expedidos;
+  historicosDoLote.forEach(h => {
+    expedidos += h.expedidos;
 
-      h.detalhes.forEach(d => {
-        tabela.innerHTML += `
-          <tr>
-            <td class="expedido">Expedida</td>
-            <td>-</td>
-            <td>-</td>
-            <td>-</td>
-            <td>${d.rz}</td>
-            <td>${d.volume || '-'}</td>
-          </tr>
-        `;
-      });
-
-      if (h.expedidos < h.totalOriginal) {
-        mensagemParcial.innerHTML += `
-          <div class="alerta">
-            ⚠️ Expedição parcial em ${h.data} ${h.hora}<br>
-            Expedidos: ${h.expedidos} de ${h.totalOriginal}
-          </div>
-        `;
-      }
+    h.detalhes.forEach(d => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="expedido">Expedida</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>${d.rz || '-'}</td>
+        <td>${d.volume || '-'}</td>
+      `;
+      tabela.appendChild(tr);
     });
+  });
 
   /* =====================
      ALOCADAS (NÃO EXPEDIDAS)
@@ -214,20 +191,20 @@ function gerarRelatorio() {
   mapa.forEach(area => {
     area.ruas.forEach(rua => {
       rua.posicoes.forEach((pos, i) => {
-        if (pos?.lote !== lote) return;
+        if (!pos || pos.lote !== lote) return;
 
         alocados++;
 
-        tabela.innerHTML += `
-          <tr>
-            <td class="ativo">Alocada</td>
-            <td>${area.nome}</td>
-            <td>${rua.nome}</td>
-            <td>${i + 1}</td>
-            <td>${pos.rz}</td>
-            <td>${pos.volume || '-'}</td>
-          </tr>
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="ativo">Alocada (não expedida)</td>
+          <td>${area.nome}</td>
+          <td>${rua.nome}</td>
+          <td>${i + 1}</td>
+          <td>${pos.rz || '-'}</td>
+          <td>${pos.volume || '-'}</td>
         `;
+        tabela.appendChild(tr);
       });
     });
   });
@@ -235,47 +212,50 @@ function gerarRelatorio() {
   /* =====================
      NÃO ALOCADAS
   ===================== */
-  const naoAlocadas = totalCriado - expedidos - alocados;
+  const naoAlocadas = Math.max(
+    totalCriado - expedidos - alocados,
+    0
+  );
 
-  if (naoAlocadas > 0) {
-    mensagemParcial.innerHTML += `
+  /* =====================
+     MENSAGEM DE EXPEDIÇÃO PARCIAL
+  ===================== */
+  if (expedidos > 0 && expedidos < totalCriado) {
+    mensagemParcial.innerHTML = `
       <div class="alerta">
-        ℹ️ ${naoAlocadas} gaylords não foram alocadas para expedição
-        e não possuem RZ nem Volume.
+        ⚠️ <strong>Expedição parcial do lote ${lote}</strong><br><br>
+
+        Total do lote: <strong>${totalCriado}</strong><br>
+        Expedidas: <strong>${expedidos}</strong><br>
+        Alocadas (não expedidas): <strong>${alocados}</strong><br>
+        Não alocadas: <strong>${naoAlocadas}</strong><br><br>
+
+        As gaylords não alocadas não possuem RZ nem Volume.
       </div>
     `;
   }
-  /* =====================
-   CENÁRIO: PARCIAL + NÃO ALOCADAS
-===================== */
-if (
-  expedidos > 0 &&
-  expedidos < totalCriado &&
-  naoAlocadas > 0
-) {
-  mensagemParcial.innerHTML += `
-    <div class="alerta">
-      ⚠️ O lote foi expedido parcialmente.<br>
-      <strong>${alocados}</strong> gaylords permaneceram alocadas.<br>
-      <strong>${naoAlocadas}</strong> gaylords não foram alocadas para expedição
-      e não possuem RZ nem Volume.
-    </div>
-  `;
-}
 
   /* =====================
      STATUS
   ===================== */
   let status = 'Ativo';
-  if (expedidos > 0 && alocados > 0) status = 'Parcialmente expedido';
-  if (expedidos > 0 && alocados === 0) status = 'Totalmente expedido';
 
+  if (expedidos > 0 && alocados > 0 && naoAlocadas > 0) {
+    status = 'Parcialmente expedido';
+  } else if (expedidos > 0 && alocados === 0 && naoAlocadas === 0) {
+    status = 'Totalmente expedido';
+  }
+
+  /* =====================
+     RESUMO
+  ===================== */
   resumo.innerHTML = `
-    <div class="card"><strong>Status:</strong><br>${status}</div>
-    <div class="card"><strong>Total criado:</strong><br>${totalCriado}</div>
-    <div class="card"><strong>Expedidos:</strong><br>${expedidos}</div>
-    <div class="card"><strong>Alocados:</strong><br>${alocados}</div>
-    <div class="card"><strong>Não alocados:</strong><br>${Math.max(naoAlocadas,0)}</div>
+    <div class="card"><strong>Lote:</strong> ${lote}</div>
+    <div class="card"><strong>Status:</strong> ${status}</div>
+    <div class="card"><strong>Total criado:</strong> ${totalCriado}</div>
+    <div class="card"><strong>Expedidos:</strong> ${expedidos}</div>
+    <div class="card"><strong>Alocados:</strong> ${alocados}</div>
+    <div class="card"><strong>Não alocados:</strong> ${naoAlocadas}</div>
   `;
 }
 
@@ -283,7 +263,10 @@ if (
    EXPORTAR CSV
 ===================== */
 function exportarCSV() {
-  if (!select.value) return alert('Selecione um lote');
+  if (!select.value) {
+    alert('Selecione um lote');
+    return;
+  }
 
   let csv = 'Status,Área,Rua,Endereço,RZ,Volume\n';
 
