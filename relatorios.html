@@ -1,148 +1,174 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Relatório por Lote</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Relatórios de Gaylords</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      padding: 20px;
-    }
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background:#f4f4f4;
+  padding:20px;
+}
 
-    h1, h2 {
-      margin-bottom: 10px;
-    }
+h1 { margin-bottom:10px; }
 
-    .box {
-      background: #fff;
-      padding: 15px;
-      border-radius: 6px;
-      margin-bottom: 15px;
-    }
+.box {
+  background:#fff;
+  padding:15px;
+  border-radius:6px;
+  margin-bottom:15px;
+}
 
-    select, button {
-      padding: 6px 10px;
-    }
+select, button {
+  padding:6px 10px;
+  margin-right:5px;
+}
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #fff;
-    }
+table {
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+}
 
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-    }
+th, td {
+  border:1px solid #ccc;
+  padding:8px;
+}
 
-    th {
-      background: #eee;
-    }
+th { background:#eee; }
 
-    .ativo {
-      color: green;
-      font-weight: bold;
-    }
+.ativo { color:green; font-weight:bold; }
+.expedido { color:#b91c1c; font-weight:bold; }
+.parcial { color:#b45309; font-weight:bold; }
 
-    .expedido {
-      color: #b91c1c;
-      font-weight: bold;
-    }
+.hidden { display:none; }
 
-    .parcial {
-      color: #b45309;
-      font-weight: bold;
-    }
-  </style>
+.resumo {
+  display:flex;
+  gap:15px;
+  flex-wrap:wrap;
+}
+
+.card {
+  background:#fafafa;
+  padding:10px;
+  border-radius:6px;
+  min-width:180px;
+}
+</style>
 </head>
 
 <body>
 
-<h1>📊 Relatório Individual por Lote</h1>
+<h1>📊 Relatórios de Gaylords</h1>
 
 <div class="box">
+  <label>
+    Modo:
+    <select id="modo" onchange="trocarModo()">
+      <option value="operacional">Operacional</option>
+      <option value="historico">Histórico / Excel</option>
+    </select>
+  </label>
+
   <label>
     Lote:
     <select id="loteSelecionado"></select>
   </label>
+
   <button onclick="gerarRelatorio()">Gerar Relatório</button>
   <button onclick="exportarCSV()">📤 Exportar CSV</button>
 </div>
 
-<div id="resumo" class="box"></div>
+<div id="resumo" class="resumo"></div>
 
-<h2>Detalhamento</h2>
 <table>
-  <thead>
-    <tr>
-      <th>Status</th>
-      <th>Área</th>
-      <th>Rua</th>
-      <th>Endereço</th>
-      <th>RZ</th>
-      <th>Volume</th>
-    </tr>
-  </thead>
-  <tbody id="tabela"></tbody>
+<thead>
+<tr id="cabecalho"></tr>
+</thead>
+<tbody id="tabela"></tbody>
 </table>
 
-<h2>Histórico de Expedição</h2>
-<div id="historico" class="box"></div>
-
 <script>
-/* =====================
+/* ======================
    DADOS
-===================== */
+====================== */
 const mapa = JSON.parse(localStorage.getItem('mapa')) || [];
 const lotes = JSON.parse(localStorage.getItem('lotes')) || {};
 const historicoExpedidos = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
 
-const select = document.getElementById('loteSelecionado');
+const modoSelect = document.getElementById('modo');
+const loteSelect = document.getElementById('loteSelecionado');
 const resumo = document.getElementById('resumo');
 const tabela = document.getElementById('tabela');
-const historicoDiv = document.getElementById('historico');
+const cabecalho = document.getElementById('cabecalho');
 
-/* =====================
-   CARREGAR LOTES
-===================== */
-function carregarLotes() {
-  select.innerHTML = '<option value="">Selecione</option>';
-
-  Object.keys(lotes).forEach(lote => {
-    const opt = document.createElement('option');
-    opt.value = lote;
-    opt.textContent = lote + ' (Ativo)';
-    select.appendChild(opt);
-  });
-
-  historicoExpedidos.forEach(h => {
-    const opt = document.createElement('option');
-    opt.value = h.lote;
-    opt.textContent = h.lote + ' (Expedido)';
-    select.appendChild(opt);
-  });
+/* ======================
+   MODO
+====================== */
+function trocarModo() {
+  carregarLotes();
+  resumo.innerHTML = '';
+  tabela.innerHTML = '';
+  cabecalho.innerHTML = '';
 }
 
-carregarLotes();
+function carregarLotes() {
+  loteSelect.innerHTML = '<option value="">Selecione</option>';
 
-/* =====================
-   GERAR RELATÓRIO
-===================== */
+  if (modoSelect.value === 'operacional') {
+    Object.keys(lotes).forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l;
+      opt.textContent = l + ' (Ativo)';
+      loteSelect.appendChild(opt);
+    });
+  } else {
+    [...new Set(historicoExpedidos.map(h => h.lote))].forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l;
+      opt.textContent = l + ' (Expedido)';
+      loteSelect.appendChild(opt);
+    });
+  }
+}
+
+trocarModo();
+
+/* ======================
+   RELATÓRIO
+====================== */
 function gerarRelatorio() {
-  const lote = select.value;
+  const lote = loteSelect.value;
   if (!lote) return alert('Selecione um lote');
 
+  resumo.innerHTML = '';
   tabela.innerHTML = '';
-  historicoDiv.innerHTML = '';
 
-  let totalCriado = lotes[lote]?.total || 0;
+  if (modoSelect.value === 'operacional') {
+    gerarOperacional(lote);
+  } else {
+    gerarHistorico(lote);
+  }
+}
+
+/* ======================
+   OPERACIONAL
+====================== */
+function gerarOperacional(lote) {
+  cabecalho.innerHTML = `
+    <th>Status</th>
+    <th>Área</th>
+    <th>Rua</th>
+    <th>Endereço</th>
+    <th>RZ</th>
+    <th>Volume</th>
+  `;
+
   let alocados = 0;
-  let expedidos = 0;
 
-  // ATIVOS
   mapa.forEach(area => {
     area.ruas.forEach(rua => {
       rua.posicoes.forEach((pos, i) => {
@@ -150,76 +176,96 @@ function gerarRelatorio() {
 
         alocados++;
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="ativo">Ativa</td>
-          <td>${area.nome}</td>
-          <td>${rua.nome}</td>
-          <td>${i + 1}</td>
-          <td>${pos.rz}</td>
-          <td>${pos.volume || '-'}</td>
+        tabela.innerHTML += `
+          <tr>
+            <td class="ativo">Ativa</td>
+            <td>${area.nome}</td>
+            <td>${rua.nome}</td>
+            <td>${i + 1}</td>
+            <td>${pos.rz}</td>
+            <td>${pos.volume || '-'}</td>
+          </tr>
         `;
-        tabela.appendChild(tr);
       });
     });
   });
 
-  // EXPEDIDOS
-  historicoExpedidos
-    .filter(h => h.lote === lote)
-    .forEach(h => {
-      expedidos += h.detalhes.length;
-
-      h.detalhes.forEach(d => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="expedido">Expedida</td>
-          <td>-</td>
-          <td>-</td>
-          <td>-</td>
-          <td>${d.rz}</td>
-          <td>${d.volume || '-'}</td>
-        `;
-        tabela.appendChild(tr);
-      });
-
-      historicoDiv.innerHTML += `
-        <div>
-          ${h.dataHora} — ${h.parcial ? 'Expedição parcial' : 'Expedição total'}
-        </div>
-      `;
-    });
-
-  const disponivel = totalCriado - alocados - expedidos;
-  let status = 'Ativo';
-  if (expedidos > 0 && alocados > 0) status = 'Parcialmente expedido';
-  if (expedidos > 0 && alocados === 0) status = 'Totalmente expedido';
+  const total = lotes[lote]?.total || 0;
 
   resumo.innerHTML = `
-    <strong>Lote:</strong> ${lote}<br>
-    <strong>Status:</strong> <span class="${status === 'Ativo' ? 'ativo' : status === 'Parcialmente expedido' ? 'parcial' : 'expedido'}">${status}</span><br>
-    <strong>Total criado:</strong> ${totalCriado}<br>
-    <strong>Alocados:</strong> ${alocados}<br>
-    <strong>Expedidos:</strong> ${expedidos}<br>
-    <strong>Disponíveis:</strong> ${disponivel}
+    <div class="card">📦 Total criado: <strong>${total}</strong></div>
+    <div class="card">📍 Alocados: <strong>${alocados}</strong></div>
+    <div class="card">📭 Disponíveis: <strong>${total - alocados}</strong></div>
   `;
 }
 
-/* =====================
-   EXPORTAR CSV
-===================== */
-function exportarCSV() {
-  let csv = 'Status,Área,Rua,Endereço,RZ,Volume\n';
+/* ======================
+   HISTÓRICO
+====================== */
+function gerarHistorico(lote) {
+  cabecalho.innerHTML = `
+    <th>Data</th>
+    <th>Hora</th>
+    <th>RZ</th>
+    <th>Volume</th>
+    <th>Tipo</th>
+  `;
 
-  document.querySelectorAll('#tabela tr').forEach(tr => {
-    const cols = [...tr.children].map(td => `"${td.innerText}"`);
-    csv += cols.join(',') + '\n';
+  let total = 0;
+  let parciais = 0;
+  let completos = 0;
+
+  historicoExpedidos
+    .filter(h => h.lote === lote)
+    .forEach(h => {
+      const data = new Date(h.dataHora || `${h.data} ${h.hora}`);
+      if (h.parcial) parciais++;
+      else completos++;
+
+      h.detalhes.forEach(d => {
+        total++;
+        tabela.innerHTML += `
+          <tr>
+            <td>${data.toLocaleDateString()}</td>
+            <td>${data.toLocaleTimeString()}</td>
+            <td>${d.rz}</td>
+            <td>${d.volume || '-'}</td>
+            <td>${h.parcial ? 'Parcial' : 'Total'}</td>
+          </tr>
+        `;
+      });
+    });
+
+  resumo.innerHTML = `
+    <div class="card">📦 Total expedido: <strong>${total}</strong></div>
+    <div class="card">🟡 Parciais: <strong>${parciais}</strong></div>
+    <div class="card">🔴 Completos: <strong>${completos}</strong></div>
+  `;
+}
+
+/* ======================
+   EXPORTAR CSV
+====================== */
+function exportarCSV() {
+  if (!tabela.innerHTML) return alert('Gere o relatório primeiro');
+
+  let csv = '';
+  document.querySelectorAll('thead th').forEach(th => {
+    csv += `"${th.innerText}",`;
+  });
+  csv = csv.slice(0, -1) + '\n';
+
+  document.querySelectorAll('tbody tr').forEach(tr => {
+    [...tr.children].forEach(td => {
+      csv += `"${td.innerText}",`;
+    });
+    csv = csv.slice(0, -1) + '\n';
   });
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = `relatorio_${select.value}.csv`;
+  link.download = `relatorio_${loteSelecionado.value}.csv`;
   link.click();
 }
 </script>
