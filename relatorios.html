@@ -100,86 +100,102 @@ th { background:#eee; }
 </table>
 
 <script>
-/* ======================
+/* =====================
    DADOS
-====================== */
+===================== */
 const mapa = JSON.parse(localStorage.getItem('mapa')) || [];
 const lotes = JSON.parse(localStorage.getItem('lotes')) || {};
 const historicoExpedidos = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
 
-const modoSelect = document.getElementById('modo');
-const loteSelect = document.getElementById('loteSelecionado');
+const select = document.getElementById('loteSelecionado');
 const resumo = document.getElementById('resumo');
 const tabela = document.getElementById('tabela');
-const cabecalho = document.getElementById('cabecalho');
-const mensagemParcial = document.getElementById('mensagemParcial');
+const historicoDiv = document.getElementById('historico');
 
-/* ======================
-   MODO
-====================== */
-function trocarModo() {
-  carregarLotes();
-  resumo.innerHTML = '';
-  tabela.innerHTML = '';
-  cabecalho.innerHTML = '';
-  mensagemParcial.innerHTML = '';
-}
-
+/* =====================
+   CARREGAR LOTES (ATIVOS + EXPEDIDOS)
+===================== */
 function carregarLotes() {
-  loteSelect.innerHTML = '<option value="">Selecione</option>';
+  select.innerHTML = '<option value="">Selecione</option>';
 
-  if (modoSelect.value === 'operacional') {
-    Object.keys(lotes).forEach(l => {
+  Object.keys(lotes).forEach(lote => {
+    const opt = document.createElement('option');
+    opt.value = lote;
+    opt.textContent = lote + ' (Ativo)';
+    select.appendChild(opt);
+  });
+
+  historicoExpedidos.forEach(h => {
+    if (![...select.options].some(o => o.value === h.lote)) {
       const opt = document.createElement('option');
-      opt.value = l;
-      opt.textContent = l + ' (Ativo)';
-      loteSelect.appendChild(opt);
-    });
-  } else {
-    [...new Set(historicoExpedidos.map(h => h.lote))].forEach(l => {
-      const opt = document.createElement('option');
-      opt.value = l;
-      opt.textContent = l + ' (Expedido)';
-      loteSelect.appendChild(opt);
-    });
-  }
+      opt.value = h.lote;
+      opt.textContent = h.lote + ' (Expedido)';
+      select.appendChild(opt);
+    }
+  });
 }
 
-trocarModo();
+carregarLotes();
 
-/* ======================
-   RELATÓRIO
-====================== */
+/* =====================
+   GERAR RELATÓRIO
+===================== */
 function gerarRelatorio() {
-  const lote = loteSelect.value;
+  const lote = select.value;
   if (!lote) return alert('Selecione um lote');
 
-  resumo.innerHTML = '';
   tabela.innerHTML = '';
-  mensagemParcial.innerHTML = '';
+  historicoDiv.innerHTML = '';
+  resumo.innerHTML = '';
 
-  if (modoSelect.value === 'operacional') {
-    gerarOperacional(lote);
-  } else {
-    gerarHistorico(lote);
-  }
-}
-
-/* ======================
-   OPERACIONAL
-====================== */
-function gerarOperacional(lote) {
-  cabecalho.innerHTML = `
-    <th>Status</th>
-    <th>Área</th>
-    <th>Rua</th>
-    <th>Endereço</th>
-    <th>RZ</th>
-    <th>Volume</th>
-  `;
-
+  let totalCriado = 0;
   let alocados = 0;
+  let expedidos = 0;
 
+  /* =====================
+     TOTAL CRIADO
+  ===================== */
+  if (lotes[lote]) {
+    totalCriado = lotes[lote].total;
+  } else {
+    const h = historicoExpedidos.find(h => h.lote === lote);
+    totalCriado = h?.totalOriginal || 0;
+  }
+
+  /* =====================
+     EXPEDIDOS
+  ===================== */
+  historicoExpedidos
+    .filter(h => h.lote === lote)
+    .forEach(h => {
+      expedidos += h.expedidos;
+
+      h.detalhes.forEach(d => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="expedido">Expedida</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+          <td>${d.rz}</td>
+          <td>${d.volume || '-'}</td>
+        `;
+        tabela.appendChild(tr);
+      });
+
+      if (h.expedidos < h.totalOriginal) {
+        historicoDiv.innerHTML += `
+          <div class="parcial">
+            ⚠️ Expedição parcial em ${h.data} ${h.hora} — 
+            ${h.expedidos} de ${h.totalOriginal}
+          </div>
+        `;
+      }
+    });
+
+  /* =====================
+     ALOCADAS (NÃO EXPEDIDAS)
+  ===================== */
   mapa.forEach(area => {
     area.ruas.forEach(rua => {
       rua.posicoes.forEach((pos, i) => {
@@ -187,109 +203,68 @@ function gerarOperacional(lote) {
 
         alocados++;
 
-        tabela.innerHTML += `
-          <tr>
-            <td class="ativo">Ativa</td>
-            <td>${area.nome}</td>
-            <td>${rua.nome}</td>
-            <td>${i + 1}</td>
-            <td>${pos.rz}</td>
-            <td>${pos.volume || '-'}</td>
-          </tr>
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="ativo">Alocada (não expedida)</td>
+          <td>${area.nome}</td>
+          <td>${rua.nome}</td>
+          <td>${i + 1}</td>
+          <td>${pos.rz}</td>
+          <td>${pos.volume || '-'}</td>
         `;
+        tabela.appendChild(tr);
       });
     });
   });
 
-  const total = lotes[lote]?.total || 0;
+  /* =====================
+     NÃO ALOCADAS
+  ===================== */
+  const naoAlocadas = totalCriado - expedidos - alocados;
 
-  resumo.innerHTML = `
-    <div class="card">📦 Total criado: <strong>${total}</strong></div>
-    <div class="card">📍 Alocados: <strong>${alocados}</strong></div>
-    <div class="card">📭 Disponíveis: <strong>${total - alocados}</strong></div>
-  `;
-}
-
-/* ======================
-   HISTÓRICO (COM AVISO)
-====================== */
-function gerarHistorico(lote) {
-  cabecalho.innerHTML = `
-    <th>Data</th>
-    <th>Hora</th>
-    <th>RZ</th>
-    <th>Volume</th>
-    <th>Tipo</th>
-  `;
-
-  let totalExpedido = 0;
-  let houveParcial = false;
-
-  historicoExpedidos
-    .filter(h => h.lote === lote)
-    .forEach(h => {
-      if (h.parcial) houveParcial = true;
-
-      const data = new Date(h.dataHora || `${h.data} ${h.hora}`);
-
-      h.detalhes.forEach(d => {
-        totalExpedido++;
-        tabela.innerHTML += `
-          <tr>
-            <td>${data.toLocaleDateString()}</td>
-            <td>${data.toLocaleTimeString()}</td>
-            <td>${d.rz}</td>
-            <td>${d.volume || '-'}</td>
-            <td>${h.parcial ? 'Parcial' : 'Total'}</td>
-          </tr>
-        `;
-      });
-    });
-
-  const totalCriado = lotes[lote]?.total || totalExpedido;
-  const naoExpedido = totalCriado - totalExpedido;
-
-  resumo.innerHTML = `
-    <div class="card">📦 Total criado: <strong>${totalCriado}</strong></div>
-    <div class="card">🚚 Total expedido: <strong>${totalExpedido}</strong></div>
-  `;
-
-  if (houveParcial && naoExpedido > 0) {
-    mensagemParcial.innerHTML = `
-      <div class="alerta">
-        ⚠️ <strong>Expedição incompleta</strong><br><br>
-        Quantidade expedida: <strong>${totalExpedido}</strong><br>
-        Quantidade não expedida: <strong>${naoExpedido}</strong><br><br>
-        Esses volumes <strong>não foram alocados para expedição</strong>, 
-        portanto <strong>não possuem RZ nem Volume</strong>.
+  if (naoAlocadas > 0) {
+    historicoDiv.innerHTML += `
+      <div class="parcial">
+        ℹ️ ${naoAlocadas} gaylords não foram alocadas para expedição
+        e não possuem RZ nem Volume.
       </div>
     `;
   }
+
+  /* =====================
+     STATUS
+  ===================== */
+  let status = 'Ativo';
+  if (expedidos > 0 && alocados > 0) status = 'Parcialmente expedido';
+  if (expedidos > 0 && alocados === 0) status = 'Totalmente expedido';
+
+  resumo.innerHTML = `
+    <strong>Lote:</strong> ${lote}<br>
+    <strong>Status:</strong> ${status}<br>
+    <strong>Total criado:</strong> ${totalCriado}<br>
+    <strong>Expedidos:</strong> ${expedidos}<br>
+    <strong>Alocados:</strong> ${alocados}<br>
+    <strong>Não alocados:</strong> ${Math.max(naoAlocadas, 0)}
+  `;
 }
 
-/* ======================
+/* =====================
    EXPORTAR CSV
-====================== */
+===================== */
 function exportarCSV() {
-  if (!tabela.innerHTML) return alert('Gere o relatório primeiro');
+  if (!select.value) return alert('Selecione um lote');
 
-  let csv = '';
-  document.querySelectorAll('thead th').forEach(th => {
-    csv += `"${th.innerText}",`;
-  });
-  csv = csv.slice(0, -1) + '\n';
+  let csv = 'Status,Área,Rua,Endereço,RZ,Volume\n';
 
-  document.querySelectorAll('tbody tr').forEach(tr => {
-    [...tr.children].forEach(td => {
-      csv += `"${td.innerText}",`;
-    });
-    csv = csv.slice(0, -1) + '\n';
+  document.querySelectorAll('#tabela tr').forEach(tr => {
+    const cols = [...tr.children].map(td => `"${td.innerText}"`);
+    csv += cols.join(',') + '\n';
   });
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = `relatorio_${loteSelecionado.value}.csv`;
+  link.download = `relatorio_${select.value}.csv`;
   link.click();
 }
 </script>
