@@ -43,8 +43,6 @@ th { background:#eee; }
 .expedido { color:#b91c1c; font-weight:bold; }
 .parcial { color:#b45309; font-weight:bold; }
 
-.hidden { display:none; }
-
 .resumo {
   display:flex;
   gap:15px;
@@ -55,7 +53,16 @@ th { background:#eee; }
   background:#fafafa;
   padding:10px;
   border-radius:6px;
-  min-width:180px;
+  min-width:200px;
+}
+
+.alerta {
+  background:#fff3cd;
+  border:1px solid #ffeeba;
+  padding:12px;
+  border-radius:6px;
+  margin-top:10px;
+  color:#856404;
 }
 </style>
 </head>
@@ -69,7 +76,7 @@ th { background:#eee; }
     Modo:
     <select id="modo" onchange="trocarModo()">
       <option value="operacional">Operacional</option>
-      <option value="historico">Histórico / Excel</option>
+      <option value="historico">Histórico / Expedição</option>
     </select>
   </label>
 
@@ -83,6 +90,7 @@ th { background:#eee; }
 </div>
 
 <div id="resumo" class="resumo"></div>
+<div id="mensagemParcial"></div>
 
 <table>
 <thead>
@@ -104,6 +112,7 @@ const loteSelect = document.getElementById('loteSelecionado');
 const resumo = document.getElementById('resumo');
 const tabela = document.getElementById('tabela');
 const cabecalho = document.getElementById('cabecalho');
+const mensagemParcial = document.getElementById('mensagemParcial');
 
 /* ======================
    MODO
@@ -113,6 +122,7 @@ function trocarModo() {
   resumo.innerHTML = '';
   tabela.innerHTML = '';
   cabecalho.innerHTML = '';
+  mensagemParcial.innerHTML = '';
 }
 
 function carregarLotes() {
@@ -146,6 +156,7 @@ function gerarRelatorio() {
 
   resumo.innerHTML = '';
   tabela.innerHTML = '';
+  mensagemParcial.innerHTML = '';
 
   if (modoSelect.value === 'operacional') {
     gerarOperacional(lote);
@@ -200,7 +211,7 @@ function gerarOperacional(lote) {
 }
 
 /* ======================
-   HISTÓRICO
+   HISTÓRICO (COM AVISO)
 ====================== */
 function gerarHistorico(lote) {
   cabecalho.innerHTML = `
@@ -211,19 +222,18 @@ function gerarHistorico(lote) {
     <th>Tipo</th>
   `;
 
-  let total = 0;
-  let parciais = 0;
-  let completos = 0;
+  let totalExpedido = 0;
+  let houveParcial = false;
 
   historicoExpedidos
     .filter(h => h.lote === lote)
     .forEach(h => {
+      if (h.parcial) houveParcial = true;
+
       const data = new Date(h.dataHora || `${h.data} ${h.hora}`);
-      if (h.parcial) parciais++;
-      else completos++;
 
       h.detalhes.forEach(d => {
-        total++;
+        totalExpedido++;
         tabela.innerHTML += `
           <tr>
             <td>${data.toLocaleDateString()}</td>
@@ -236,11 +246,25 @@ function gerarHistorico(lote) {
       });
     });
 
+  const totalCriado = lotes[lote]?.total || totalExpedido;
+  const naoExpedido = totalCriado - totalExpedido;
+
   resumo.innerHTML = `
-    <div class="card">📦 Total expedido: <strong>${total}</strong></div>
-    <div class="card">🟡 Parciais: <strong>${parciais}</strong></div>
-    <div class="card">🔴 Completos: <strong>${completos}</strong></div>
+    <div class="card">📦 Total criado: <strong>${totalCriado}</strong></div>
+    <div class="card">🚚 Total expedido: <strong>${totalExpedido}</strong></div>
   `;
+
+  if (houveParcial && naoExpedido > 0) {
+    mensagemParcial.innerHTML = `
+      <div class="alerta">
+        ⚠️ <strong>Expedição incompleta</strong><br><br>
+        Quantidade expedida: <strong>${totalExpedido}</strong><br>
+        Quantidade não expedida: <strong>${naoExpedido}</strong><br><br>
+        Esses volumes <strong>não foram alocados para expedição</strong>, 
+        portanto <strong>não possuem RZ nem Volume</strong>.
+      </div>
+    `;
+  }
 }
 
 /* ======================
