@@ -245,6 +245,23 @@ function gerarRelatorio() {
       </div>
     `;
   }
+  /* =====================
+   CENÁRIO: PARCIAL + NÃO ALOCADAS
+===================== */
+if (
+  expedidos > 0 &&
+  expedidos < totalCriado &&
+  naoAlocadas > 0
+) {
+  mensagemParcial.innerHTML += `
+    <div class="alerta">
+      ⚠️ O lote foi expedido parcialmente.<br>
+      <strong>${alocados}</strong> gaylords permaneceram alocadas.<br>
+      <strong>${naoAlocadas}</strong> gaylords não foram alocadas para expedição
+      e não possuem RZ nem Volume.
+    </div>
+  `;
+}
 
   /* =====================
      STATUS
