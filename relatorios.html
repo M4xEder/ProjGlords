@@ -284,6 +284,96 @@ function exportarCSV() {
   link.download = `relatorio_${select.value}.csv`;
   link.click();
 }
+  /* =====================
+   EXPORTAR todos lotes 
+===================== */
+  function exportarExcelPorLote() {
+
+  if (!mapa.length && !historicoExpedidos.length) {
+    alert('Nenhum dado para exportar');
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+  const lotesSet = new Set();
+
+  Object.keys(lotes).forEach(l => lotesSet.add(l));
+  historicoExpedidos.forEach(h => lotesSet.add(h.lote));
+
+  lotesSet.forEach(lote => {
+
+    let totalCriado = 0;
+    let expedidos = 0;
+    let alocados = 0;
+
+    const historicosDoLote = historicoExpedidos.filter(h => h.lote === lote);
+
+    if (historicosDoLote.length > 0) {
+      totalCriado = historicosDoLote[0].totalOriginal;
+    } else if (lotes[lote]) {
+      totalCriado = lotes[lote].total;
+    }
+
+    const linhas = [];
+
+    historicosDoLote.forEach(h => {
+      expedidos += h.expedidos;
+      h.detalhes.forEach(d => {
+        linhas.push({
+          Status: 'Expedida',
+          Área: '-',
+          Rua: '-',
+          Endereço: '-',
+          RZ: d.rz,
+          Volume: d.volume || '',
+          Data: h.data,
+          Hora: h.hora
+        });
+      });
+    });
+
+    mapa.forEach(area => {
+      area.ruas.forEach(rua => {
+        rua.posicoes.forEach((pos, i) => {
+          if (pos?.lote !== lote) return;
+          alocados++;
+          linhas.push({
+            Status: 'Alocada (não expedida)',
+            Área: area.nome,
+            Rua: rua.nome,
+            Endereço: i + 1,
+            RZ: pos.rz,
+            Volume: pos.volume || '',
+            Data: '',
+            Hora: ''
+          });
+        });
+      });
+    });
+
+    const naoAlocadas = Math.max(totalCriado - expedidos - alocados, 0);
+
+    for (let i = 0; i < naoAlocadas; i++) {
+      linhas.push({
+        Status: 'Não alocada',
+        Área: '',
+        Rua: '',
+        Endereço: '',
+        RZ: '',
+        Volume: '',
+        Data: '',
+        Hora: ''
+      });
+    }
+
+    const ws = XLSX.utils.json_to_sheet(linhas);
+    const nomeAba = `Lote_${lote.replace(/[^\w]/g, '_')}`;
+
+    XLSX.utils.book_append_sheet(wb, ws, nomeAba);
+  });
+
+  XLSX.writeFile(wb, 'relatorio_completo_por_lote.xlsx');
+}
 </script>
 </body>
 </html>
