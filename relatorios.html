@@ -100,7 +100,6 @@ th { background:#eee; }
 </table>
 
 <!-- LIB EXCEL -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script>
 /* =====================
    DADOS
@@ -140,8 +139,8 @@ function gerarRelatorio() {
 
   tabela.innerHTML = '';
   resumo.innerHTML = '';
-  mensagem.innerHTML = '';
   mensagem.style.display = 'none';
+  mensagem.innerHTML = '';
 
   let total = 0;
   let expedidos = 0;
@@ -152,7 +151,7 @@ function gerarRelatorio() {
   if (historico.length > 0) total = historico[0].totalOriginal;
   else if (lotes[lote]) total = lotes[lote].total;
 
-  // EXPEDIDOS
+  /* ========= EXPEDIDOS ========= */
   historico.forEach(h => {
     expedidos += h.expedidos;
 
@@ -165,17 +164,9 @@ function gerarRelatorio() {
           <td>${d.volume || '-'}</td>
         </tr>`;
     });
-
-    if (h.expedidos < h.totalOriginal) {
-      mensagem.style.display = 'block';
-      mensagem.innerHTML += `
-        ⚠️ Expedição parcial do lote <strong>${lote}</strong><br>
-        Total: ${h.totalOriginal} | Expedidas: ${h.expedidos}<br><br>
-      `;
-    }
   });
 
-  // ALOCADAS (NÃO EXPEDIDAS)
+  /* ========= ALOCADAS ========= */
   mapa.forEach(area => {
     area.ruas.forEach(rua => {
       rua.posicoes.forEach((pos, i) => {
@@ -194,19 +185,22 @@ function gerarRelatorio() {
     });
   });
 
-  // NÃO ALOCADAS
+  /* ========= NÃO ALOCADAS ========= */
   const naoAlocadas = Math.max(total - expedidos - alocados, 0);
 
-  if (naoAlocadas > 0) {
+  if (expedidos > 0 && (alocados > 0 || naoAlocadas > 0)) {
     mensagem.style.display = 'block';
-    mensagem.innerHTML += `
-      ℹ️ ${naoAlocadas} gaylords do lote <strong>${lote}</strong>
-      não foram alocadas para expedição e não possuem RZ nem volume.
+    mensagem.innerHTML = `
+      ⚠️ <strong>Expedição parcial</strong><br>
+      Total do lote: ${total}<br>
+      Expedidas: ${expedidos}<br>
+      Alocadas: ${alocados}<br>
+      Não alocadas: ${naoAlocadas} (sem RZ e Volume)
     `;
   }
 
   resumo.innerHTML = `
-    <div class="card">Total criado: ${total}</div>
+    <div class="card">Total: ${total}</div>
     <div class="card">Expedidas: ${expedidos}</div>
     <div class="card">Alocadas: ${alocados}</div>
     <div class="card">Não alocadas: ${naoAlocadas}</div>
@@ -214,7 +208,72 @@ function gerarRelatorio() {
 }
 
 /* =====================
-   EXPORTAR TODOS OS LOTES
+   EXPORTAR EXCEL - LOTE
+===================== */
+function exportarExcelLote() {
+  const lote = select.value;
+  if (!lote) return alert('Selecione um lote');
+
+  const wb = XLSX.utils.book_new();
+  let linhas = [];
+
+  historicoExpedidos
+    .filter(h => h.lote === lote)
+    .forEach(h => {
+      h.detalhes.forEach(d => {
+        linhas.push({
+          Status: 'Expedida',
+          Área: '',
+          Rua: '',
+          Endereço: '',
+          RZ: d.rz,
+          Volume: d.volume || ''
+        });
+      });
+    });
+
+  mapa.forEach(area => {
+    area.ruas.forEach(rua => {
+      rua.posicoes.forEach((pos, i) => {
+        if (pos?.lote === lote) {
+          linhas.push({
+            Status: 'Alocada',
+            Área: area.nome,
+            Rua: rua.nome,
+            Endereço: i + 1,
+            RZ: pos.rz,
+            Volume: pos.volume || ''
+          });
+        }
+      });
+    });
+  });
+
+  let total = 0;
+  const h = historicoExpedidos.find(h => h.lote === lote);
+  if (h) total = h.totalOriginal;
+  else if (lotes[lote]) total = lotes[lote].total;
+
+  const naoAlocadas = total - linhas.length;
+
+  for (let i = 0; i < naoAlocadas; i++) {
+    linhas.push({
+      Status: 'Não alocada',
+      Área: '',
+      Rua: '',
+      Endereço: '',
+      RZ: '',
+      Volume: ''
+    });
+  }
+
+  const ws = XLSX.utils.json_to_sheet(linhas);
+  XLSX.utils.book_append_sheet(wb, ws, `Lote_${lote}`.substring(0, 31));
+  XLSX.writeFile(wb, `relatorio_lote_${lote}.xlsx`);
+}
+
+/* =====================
+   EXPORTAR EXCEL - TODOS
 ===================== */
 function exportarExcelTodos() {
   const wb = XLSX.utils.book_new();
@@ -224,7 +283,7 @@ function exportarExcelTodos() {
   historicoExpedidos.forEach(h => set.add(h.lote));
 
   set.forEach(lote => {
-    const linhas = [];
+    let linhas = [];
 
     historicoExpedidos
       .filter(h => h.lote === lote)
@@ -232,11 +291,11 @@ function exportarExcelTodos() {
         h.detalhes.forEach(d => {
           linhas.push({
             Status: 'Expedida',
-            Área: '-',
-            Rua: '-',
-            Endereço: '-',
+            Área: '',
+            Rua: '',
+            Endereço: '',
             RZ: d.rz,
-            Volume: d.volume || '-'
+            Volume: d.volume || ''
           });
         });
       });
@@ -251,7 +310,7 @@ function exportarExcelTodos() {
               Rua: rua.nome,
               Endereço: i + 1,
               RZ: pos.rz,
-              Volume: pos.volume || '-'
+              Volume: pos.volume || ''
             });
           }
         });
@@ -268,7 +327,7 @@ function exportarExcelTodos() {
     }
   });
 
-  XLSX.writeFile(wb, 'relatorio_completo_lotes.xlsx');
+  XLSX.writeFile(wb, 'relatorio_completo_gaylords.xlsx');
 }
 </script>
 </body>
