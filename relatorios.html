@@ -12,8 +12,6 @@ body {
   padding:20px;
 }
 
-h1 { margin-bottom:10px; }
-
 .box {
   background:#fff;
   padding:15px;
@@ -42,7 +40,6 @@ th { background:#eee; }
 
 .ativo { color:green; font-weight:bold; }
 .expedido { color:#b91c1c; font-weight:bold; }
-.nao { color:#555; font-style:italic; }
 
 .resumo {
   display:flex;
@@ -54,7 +51,7 @@ th { background:#eee; }
   background:#fafafa;
   padding:10px;
   border-radius:6px;
-  min-width:220px;
+  min-width:200px;
 }
 
 .alerta {
@@ -79,8 +76,10 @@ th { background:#eee; }
   </label>
 
   <button onclick="gerarRelatorio()">Gerar Relatório</button>
-  <button onclick="exportarExcelLote()">📊 Exportar Lote</button>
-  <button onclick="exportarExcelTodos()">📦 Exportar Todos</button>
+  <button onclick="exportarExcelLote()">📊 Excel (Lote)</button>
+  <button onclick="exportarExcelTodos()">📦 Excel (Todos)</button>
+  <button onclick="exportarCSVLote()">📄 CSV (Lote)</button>
+  <button onclick="exportarCSVTodos()">📦 CSV (Todos)</button>
 </div>
 
 <div id="mensagem" class="alerta" style="display:none"></div>
@@ -100,7 +99,6 @@ th { background:#eee; }
 <tbody id="tabela"></tbody>
 </table>
 
-<!-- XLSX -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
@@ -119,190 +117,181 @@ const mensagem = document.getElementById('mensagem');
 // =====================
 // CARREGAR LOTES
 // =====================
-(function carregarLotes() {
+(function carregarLotes(){
   const set = new Set();
-  Object.keys(lotes).forEach(l => set.add(l));
-  historicoExpedidos.forEach(h => set.add(h.lote));
+  Object.keys(lotes).forEach(l=>set.add(l));
+  historicoExpedidos.forEach(h=>set.add(h.lote));
 
   select.innerHTML = '<option value="">Selecione</option>';
-  set.forEach(l => {
-    const opt = document.createElement('option');
-    opt.value = l;
-    opt.textContent = l;
-    select.appendChild(opt);
+  set.forEach(l=>{
+    const o=document.createElement('option');
+    o.value=l;
+    o.textContent=l;
+    select.appendChild(o);
   });
 })();
 
 // =====================
 // GERAR RELATÓRIO
 // =====================
-function gerarRelatorio() {
+function gerarRelatorio(){
   const lote = select.value;
-  if (!lote) return alert('Selecione um lote');
+  if(!lote) return alert('Selecione um lote');
 
-  tabela.innerHTML = '';
-  resumo.innerHTML = '';
-  mensagem.style.display = 'none';
+  tabela.innerHTML='';
+  resumo.innerHTML='';
+  mensagem.style.display='none';
 
-  let total = 0;
-  let expedidos = 0;
-  let alocados = 0;
+  let total=0, expedidos=0, alocados=0;
+  const historico = historicoExpedidos.filter(h=>h.lote===lote);
 
-  const historico = historicoExpedidos.filter(h => h.lote === lote);
+  if(historico.length) total=historico[0].totalOriginal;
+  else if(lotes[lote]) total=lotes[lote].total;
 
-  if (historico.length > 0) total = historico[0].totalOriginal;
-  else if (lotes[lote]) total = lotes[lote].total;
-
-  // EXPEDIDOS
-  historico.forEach(h => {
-    expedidos += h.expedidos;
-
-    h.detalhes.forEach(d => {
-      tabela.innerHTML += `
-        <tr>
-          <td class="expedido">Expedida</td>
-          <td>-</td><td>-</td><td>-</td>
-          <td>${d.rz}</td>
-          <td>${d.volume || '-'}</td>
-        </tr>`;
+  historico.forEach(h=>{
+    expedidos+=h.expedidos;
+    h.detalhes.forEach(d=>{
+      tabela.innerHTML+=`
+      <tr>
+        <td class="expedido">Expedida</td>
+        <td>-</td><td>-</td><td>-</td>
+        <td>${d.rz}</td>
+        <td>${d.volume||''}</td>
+      </tr>`;
     });
   });
 
-  // ALOCADAS (NÃO EXPEDIDAS)
-  mapa.forEach(area => {
-    area.ruas.forEach(rua => {
-      rua.posicoes.forEach((pos, i) => {
-        if (pos?.lote !== lote) return;
-        alocados++;
-        tabela.innerHTML += `
-          <tr>
-            <td class="ativo">Alocada</td>
-            <td>${area.nome}</td>
-            <td>${rua.nome}</td>
-            <td>${i + 1}</td>
-            <td>${pos.rz}</td>
-            <td>${pos.volume || '-'}</td>
-          </tr>`;
-      });
-    });
-  });
+  mapa.forEach(a=>a.ruas.forEach(r=>r.posicoes.forEach((p,i)=>{
+    if(p?.lote!==lote) return;
+    alocados++;
+    tabela.innerHTML+=`
+    <tr>
+      <td class="ativo">Alocada</td>
+      <td>${a.nome}</td>
+      <td>${r.nome}</td>
+      <td>${i+1}</td>
+      <td>${p.rz}</td>
+      <td>${p.volume||''}</td>
+    </tr>`;
+  })));
 
-  const naoAlocadas = Math.max(total - expedidos - alocados, 0);
+  const naoAlocadas = Math.max(total-expedidos-alocados,0);
 
-  // MENSAGEM PARCIAL
-  if (expedidos > 0 && (alocados > 0 || naoAlocadas > 0)) {
-    mensagem.style.display = 'block';
-    mensagem.innerHTML = `
-      ⚠️ <strong>Expedição parcial</strong><br>
-      Total do lote: ${total}<br>
+  if(expedidos>0 && (alocados>0||naoAlocadas>0)){
+    mensagem.style.display='block';
+    mensagem.innerHTML=`
+      ⚠️ Expedição parcial<br>
+      Total: ${total}<br>
       Expedidas: ${expedidos}<br>
       Alocadas: ${alocados}<br>
       Não alocadas: ${naoAlocadas} (sem RZ e Volume)
     `;
   }
 
-  resumo.innerHTML = `
-    <div class="card">📦 Total: ${total}</div>
-    <div class="card">🚚 Expedidas: ${expedidos}</div>
-    <div class="card">📍 Alocadas: ${alocados}</div>
-    <div class="card">❌ Não alocadas: ${naoAlocadas}</div>
+  resumo.innerHTML=`
+    <div class="card">Total: ${total}</div>
+    <div class="card">Expedidas: ${expedidos}</div>
+    <div class="card">Alocadas: ${alocados}</div>
+    <div class="card">Não alocadas: ${naoAlocadas}</div>
   `;
 }
 
 // =====================
-// EXPORTAR EXCEL - LOTE
+// GERAR LINHAS
 // =====================
-function exportarExcelLote() {
-  const lote = select.value;
-  if (!lote) return alert('Selecione um lote');
+function gerarLinhas(lote){
+  let linhas=[];
+  let total=0, expedidos=0, alocados=0;
+  const hist = historicoExpedidos.filter(h=>h.lote===lote);
 
-  const wb = XLSX.utils.book_new();
-  const linhas = gerarLinhasLote(lote);
+  if(hist.length) total=hist[0].totalOriginal;
+  else if(lotes[lote]) total=lotes[lote].total;
 
-  if (linhas.length === 0) return alert('Nenhum dado para exportar');
-
-  const ws = XLSX.utils.json_to_sheet(linhas);
-  XLSX.utils.book_append_sheet(wb, ws, `Lote_${lote}`.substring(0,31));
-  XLSX.writeFile(wb, `relatorio_${lote}.xlsx`);
-}
-
-// =====================
-// EXPORTAR EXCEL - TODOS
-// =====================
-function exportarExcelTodos() {
-  const wb = XLSX.utils.book_new();
-  const set = new Set();
-
-  Object.keys(lotes).forEach(l => set.add(l));
-  historicoExpedidos.forEach(h => set.add(h.lote));
-
-  if (set.size === 0) return alert('Nenhum lote encontrado');
-
-  set.forEach(lote => {
-    const linhas = gerarLinhasLote(lote);
-    if (linhas.length === 0) return;
-
-    const ws = XLSX.utils.json_to_sheet(linhas);
-    XLSX.utils.book_append_sheet(
-      wb,
-      ws,
-      `Lote_${lote}`.substring(0,31)
-    );
+  hist.forEach(h=>{
+    expedidos+=h.expedidos;
+    h.detalhes.forEach(d=>linhas.push({
+      Status:'Expedida',RZ:d.rz,Volume:d.volume||''
+    }));
   });
 
-  XLSX.writeFile(wb, 'relatorio_todos_lotes.xlsx');
-}
+  mapa.forEach(a=>a.ruas.forEach(r=>r.posicoes.forEach(p=>{
+    if(p?.lote===lote){
+      alocados++;
+      linhas.push({Status:'Alocada',RZ:p.rz,Volume:p.volume||''});
+    }
+  })));
 
-// =====================
-// GERAR LINHAS PADRÃO
-// =====================
-function gerarLinhasLote(lote) {
-  let linhas = [];
-  let total = 0;
-  let expedidos = 0;
-  let alocados = 0;
-
-  const historico = historicoExpedidos.filter(h => h.lote === lote);
-
-  if (historico.length > 0) total = historico[0].totalOriginal;
-  else if (lotes[lote]) total = lotes[lote].total;
-
-  historico.forEach(h => {
-    expedidos += h.expedidos;
-    h.detalhes.forEach(d => {
-      linhas.push({
-        Status: 'Expedida',
-        RZ: d.rz,
-        Volume: d.volume || ''
-      });
-    });
-  });
-
-  mapa.forEach(area => {
-    area.ruas.forEach(rua => {
-      rua.posicoes.forEach(pos => {
-        if (pos?.lote === lote) {
-          alocados++;
-          linhas.push({
-            Status: 'Alocada',
-            RZ: pos.rz,
-            Volume: pos.volume || ''
-          });
-        }
-      });
-    });
-  });
-
-  const naoAlocadas = Math.max(total - expedidos - alocados, 0);
-  for (let i = 0; i < naoAlocadas; i++) {
-    linhas.push({
-      Status: 'Não alocada',
-      RZ: '',
-      Volume: ''
-    });
+  for(let i=0;i<Math.max(total-expedidos-alocados,0);i++){
+    linhas.push({Status:'Não alocada',RZ:'',Volume:''});
   }
-
   return linhas;
+}
+
+// =====================
+// EXCEL
+// =====================
+function exportarExcelLote(){
+  const lote=select.value;
+  if(!lote) return alert('Selecione um lote');
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,
+    XLSX.utils.json_to_sheet(gerarLinhas(lote)),
+    `Lote_${lote}`.substring(0,31)
+  );
+  XLSX.writeFile(wb,`relatorio_${lote}.xlsx`);
+}
+
+function exportarExcelTodos(){
+  const wb=XLSX.utils.book_new();
+  const set=new Set();
+  Object.keys(lotes).forEach(l=>set.add(l));
+  historicoExpedidos.forEach(h=>set.add(h.lote));
+
+  set.forEach(l=>{
+    const linhas=gerarLinhas(l);
+    if(linhas.length){
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.json_to_sheet(linhas),
+        `Lote_${l}`.substring(0,31)
+      );
+    }
+  });
+  XLSX.writeFile(wb,'relatorio_todos_lotes.xlsx');
+}
+
+// =====================
+// CSV
+// =====================
+function exportarCSVLote(){
+  const lote=select.value;
+  if(!lote) return alert('Selecione um lote');
+  baixarCSV(`relatorio_${lote}.csv`, gerarLinhas(lote));
+}
+
+function exportarCSVTodos(){
+  const set=new Set();
+  Object.keys(lotes).forEach(l=>set.add(l));
+  historicoExpedidos.forEach(h=>set.add(h.lote));
+
+  set.forEach(l=>{
+    const linhas=gerarLinhas(l);
+    if(linhas.length){
+      baixarCSV(`relatorio_${l}.csv`, linhas);
+    }
+  });
+}
+
+function baixarCSV(nome, dados){
+  let csv='Status,RZ,Volume\n';
+  dados.forEach(l=>{
+    csv+=`"${l.Status}","${l.RZ}","${l.Volume}"\n`;
+  });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=nome;
+  a.click();
 }
 </script>
 
