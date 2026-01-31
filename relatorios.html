@@ -100,11 +100,10 @@ th { background:#eee; }
 </table>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
 <script>
-// =====================
-// DADOS
-// =====================
+/* =====================
+   DADOS
+===================== */
 const mapa = JSON.parse(localStorage.getItem('mapa')) || [];
 const lotes = JSON.parse(localStorage.getItem('lotes')) || {};
 const historicoExpedidos = JSON.parse(localStorage.getItem('historicoExpedidos')) || [];
@@ -114,81 +113,98 @@ const tabela = document.getElementById('tabela');
 const resumo = document.getElementById('resumo');
 const mensagem = document.getElementById('mensagem');
 
-// =====================
-// CARREGAR LOTES
-// =====================
-(function carregarLotes(){
+/* =====================
+   CARREGAR LOTES
+===================== */
+(function carregarLotes() {
   const set = new Set();
-  Object.keys(lotes).forEach(l=>set.add(l));
-  historicoExpedidos.forEach(h=>set.add(h.lote));
+  Object.keys(lotes).forEach(l => set.add(l));
+  historicoExpedidos.forEach(h => set.add(h.lote));
 
   select.innerHTML = '<option value="">Selecione</option>';
-  set.forEach(l=>{
-    const o=document.createElement('option');
-    o.value=l;
-    o.textContent=l;
-    select.appendChild(o);
+  set.forEach(lote => {
+    const opt = document.createElement('option');
+    opt.value = lote;
+    opt.textContent = lote;
+    select.appendChild(opt);
   });
 })();
 
-// =====================
-// GERAR RELATÓRIO
-// =====================
-function gerarRelatorio(){
+/* =====================
+   GERAR RELATÓRIO
+===================== */
+function gerarRelatorio() {
   const lote = select.value;
-  if(!lote) return alert('Selecione um lote');
+  if (!lote) return alert('Selecione um lote');
 
-  tabela.innerHTML='';
-  resumo.innerHTML='';
-  mensagem.style.display='none';
+  tabela.innerHTML = '';
+  resumo.innerHTML = '';
+  mensagem.style.display = 'none';
+  mensagem.innerHTML = '';
 
-  let total=0, expedidos=0, alocados=0;
-  const historico = historicoExpedidos.filter(h=>h.lote===lote);
+  let total = 0;
+  let expedidos = 0;
+  let alocados = 0;
 
-  if(historico.length) total=historico[0].totalOriginal;
-  else if(lotes[lote]) total=lotes[lote].total;
+  const historico = historicoExpedidos.filter(h => h.lote === lote);
 
-  historico.forEach(h=>{
-    expedidos+=h.expedidos;
-    h.detalhes.forEach(d=>{
-      tabela.innerHTML+=`
-      <tr>
-        <td class="expedido">Expedida</td>
-        <td>-</td><td>-</td><td>-</td>
-        <td>${d.rz}</td>
-        <td>${d.volume||''}</td>
-      </tr>`;
+  if (historico.length > 0) total = historico[0].totalOriginal;
+  else if (lotes[lote]) total = lotes[lote].total;
+
+  // EXPEDIDOS
+  historico.forEach(h => {
+    expedidos += h.expedidos;
+
+    h.detalhes.forEach(d => {
+      tabela.innerHTML += `
+        <tr>
+          <td class="expedido">Expedida</td>
+          <td>-</td><td>-</td><td>-</td>
+          <td>${d.rz}</td>
+          <td>${d.volume || '-'}</td>
+        </tr>`;
+    });
+
+    if (h.expedidos < h.totalOriginal) {
+      mensagem.style.display = 'block';
+      mensagem.innerHTML += `
+        ⚠️ Expedição parcial do lote <strong>${lote}</strong><br>
+        Total: ${h.totalOriginal} | Expedidas: ${h.expedidos}<br><br>
+      `;
+    }
+  });
+
+  // ALOCADAS
+  mapa.forEach(area => {
+    area.ruas.forEach(rua => {
+      rua.posicoes.forEach((pos, i) => {
+        if (pos?.lote !== lote) return;
+        alocados++;
+
+        tabela.innerHTML += `
+          <tr>
+            <td class="ativo">Alocada</td>
+            <td>${area.nome}</td>
+            <td>${rua.nome}</td>
+            <td>${i + 1}</td>
+            <td>${pos.rz}</td>
+            <td>${pos.volume || '-'}</td>
+          </tr>`;
+      });
     });
   });
 
-  mapa.forEach(a=>a.ruas.forEach(r=>r.posicoes.forEach((p,i)=>{
-    if(p?.lote!==lote) return;
-    alocados++;
-    tabela.innerHTML+=`
-    <tr>
-      <td class="ativo">Alocada</td>
-      <td>${a.nome}</td>
-      <td>${r.nome}</td>
-      <td>${i+1}</td>
-      <td>${p.rz}</td>
-      <td>${p.volume||''}</td>
-    </tr>`;
-  })));
+  const naoAlocadas = Math.max(total - expedidos - alocados, 0);
 
-  const naoAlocadas = Math.max(total-expedidos-alocados,0);
-
-  if(expedidos>0 && (alocados>0||naoAlocadas>0)){
-    mensagem.style.display='block';
-    mensagem.innerHTML=`
-      ⚠️ Expedição parcial<br>
-      Total: ${total}<br>
-      Expedidas: ${expedidos}<br>
-      Alocadas: ${alocados}<br>
-      Não alocadas: ${naoAlocadas} (sem RZ e Volume)
+  if (naoAlocadas > 0) {
+    mensagem.style.display = 'block';
+    mensagem.innerHTML += `
+      ℹ️ ${naoAlocadas} gaylords **não foram alocadas**
+      (sem RZ e sem Volume)
     `;
   }
 
-  resumo.innerHTML=`
+  resumo.innerHTML = `
     <div class="card">Total: ${total}</div>
     <div class="card">Expedidas: ${expedidos}</div>
     <div class="card">Alocadas: ${alocados}</div>
@@ -196,104 +212,136 @@ function gerarRelatorio(){
   `;
 }
 
-// =====================
-// GERAR LINHAS
-// =====================
-function gerarLinhas(lote){
-  let linhas=[];
-  let total=0, expedidos=0, alocados=0;
-  const hist = historicoExpedidos.filter(h=>h.lote===lote);
+/* =====================
+   GERAR DADOS DO LOTE
+===================== */
+function gerarDadosLote(lote) {
+  let dados = [];
+  let total = 0;
+  let expedidos = 0;
+  let alocados = 0;
 
-  if(hist.length) total=hist[0].totalOriginal;
-  else if(lotes[lote]) total=lotes[lote].total;
+  const historico = historicoExpedidos.filter(h => h.lote === lote);
 
-  hist.forEach(h=>{
-    expedidos+=h.expedidos;
-    h.detalhes.forEach(d=>linhas.push({
-      Status:'Expedida',RZ:d.rz,Volume:d.volume||''
-    }));
+  if (historico.length > 0) total = historico[0].totalOriginal;
+  else if (lotes[lote]) total = lotes[lote].total;
+
+  historico.forEach(h => {
+    expedidos += h.expedidos;
+    h.detalhes.forEach(d => {
+      dados.push({
+        Lote: lote,
+        Status: 'Expedida',
+        RZ: d.rz,
+        Volume: d.volume || ''
+      });
+    });
   });
 
-  mapa.forEach(a=>a.ruas.forEach(r=>r.posicoes.forEach(p=>{
-    if(p?.lote===lote){
-      alocados++;
-      linhas.push({Status:'Alocada',RZ:p.rz,Volume:p.volume||''});
-    }
-  })));
+  mapa.forEach(area => {
+    area.ruas.forEach(rua => {
+      rua.posicoes.forEach(pos => {
+        if (pos?.lote === lote) {
+          alocados++;
+          dados.push({
+            Lote: lote,
+            Status: 'Alocada',
+            RZ: pos.rz,
+            Volume: pos.volume || ''
+          });
+        }
+      });
+    });
+  });
 
-  for(let i=0;i<Math.max(total-expedidos-alocados,0);i++){
-    linhas.push({Status:'Não alocada',RZ:'',Volume:''});
+  const naoAlocadas = Math.max(total - expedidos - alocados, 0);
+  for (let i = 0; i < naoAlocadas; i++) {
+    dados.push({
+      Lote: lote,
+      Status: 'Não alocada',
+      RZ: '',
+      Volume: ''
+    });
   }
-  return linhas;
+
+  return dados;
 }
 
-// =====================
-// EXCEL
-// =====================
-function exportarExcelLote(){
-  const lote=select.value;
-  if(!lote) return alert('Selecione um lote');
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,
-    XLSX.utils.json_to_sheet(gerarLinhas(lote)),
-    `Lote_${lote}`.substring(0,31)
-  );
-  XLSX.writeFile(wb,`relatorio_${lote}.xlsx`);
+/* =====================
+   EXPORTAR EXCEL (LOTE)
+===================== */
+function exportarExcelLote() {
+  const lote = select.value;
+  if (!lote) return alert('Selecione um lote');
+
+  const dados = gerarDadosLote(lote);
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(dados);
+  XLSX.utils.book_append_sheet(wb, ws, `Lote_${lote}`.substring(0, 31));
+  XLSX.writeFile(wb, `relatorio_${lote}.xlsx`);
 }
 
-function exportarExcelTodos(){
-  const wb=XLSX.utils.book_new();
-  const set=new Set();
-  Object.keys(lotes).forEach(l=>set.add(l));
-  historicoExpedidos.forEach(h=>set.add(h.lote));
+/* =====================
+   EXPORTAR EXCEL (TODOS)
+===================== */
+function exportarExcelTodos() {
+  const wb = XLSX.utils.book_new();
+  const set = new Set();
 
-  set.forEach(l=>{
-    const linhas=gerarLinhas(l);
-    if(linhas.length){
-      XLSX.utils.book_append_sheet(
-        wb,
-        XLSX.utils.json_to_sheet(linhas),
-        `Lote_${l}`.substring(0,31)
-      );
-    }
+  Object.keys(lotes).forEach(l => set.add(l));
+  historicoExpedidos.forEach(h => set.add(h.lote));
+
+  set.forEach(lote => {
+    const dados = gerarDadosLote(lote);
+    if (dados.length === 0) return;
+
+    const ws = XLSX.utils.json_to_sheet(dados);
+    XLSX.utils.book_append_sheet(wb, ws, `Lote_${lote}`.substring(0, 31));
   });
-  XLSX.writeFile(wb,'relatorio_todos_lotes.xlsx');
+
+  XLSX.writeFile(wb, 'relatorio_todos_lotes.xlsx');
 }
 
-// =====================
-// CSV
-// =====================
-function exportarCSVLote(){
-  const lote=select.value;
-  if(!lote) return alert('Selecione um lote');
-  baixarCSV(`relatorio_${lote}.csv`, gerarLinhas(lote));
+/* =====================
+   CSV POR LOTE
+===================== */
+function exportarCSVLote() {
+  const lote = select.value;
+  if (!lote) return alert('Selecione um lote');
+
+  const dados = gerarDadosLote(lote);
+  gerarCSV(dados, `relatorio_${lote}.csv`);
 }
 
-function exportarCSVTodos(){
-  const set=new Set();
-  Object.keys(lotes).forEach(l=>set.add(l));
-  historicoExpedidos.forEach(h=>set.add(h.lote));
+/* =====================
+   CSV TODOS
+===================== */
+function exportarCSVTodos() {
+  const set = new Set();
+  Object.keys(lotes).forEach(l => set.add(l));
+  historicoExpedidos.forEach(h => set.add(h.lote));
 
-  set.forEach(l=>{
-    const linhas=gerarLinhas(l);
-    if(linhas.length){
-      baixarCSV(`relatorio_${l}.csv`, linhas);
-    }
+  let dados = [];
+  set.forEach(lote => dados = dados.concat(gerarDadosLote(lote)));
+
+  gerarCSV(dados, 'relatorio_todos_lotes.csv');
+}
+
+/* =====================
+   GERAR CSV
+===================== */
+function gerarCSV(dados, nome) {
+  let csv = Object.keys(dados[0]).join(',') + '\n';
+  dados.forEach(l => {
+    csv += Object.values(l).map(v => `"${v}"`).join(',') + '\n';
   });
-}
 
-function baixarCSV(nome, dados){
-  let csv='Status,RZ,Volume\n';
-  dados.forEach(l=>{
-    csv+=`"${l.Status}","${l.RZ}","${l.Volume}"\n`;
-  });
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=nome;
-  a.click();
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = nome;
+  link.click();
 }
 </script>
-
 </body>
 </html>
