@@ -24,7 +24,7 @@ h1 { margin-bottom:10px; }
 select, button {
   padding:6px 10px;
   margin-right:5px;
-  cursor:pointer;
+  margin-top:5px;
 }
 
 table {
@@ -36,6 +36,7 @@ table {
 th, td {
   border:1px solid #ccc;
   padding:8px;
+  text-align:left;
 }
 
 th { background:#eee; }
@@ -47,13 +48,14 @@ th { background:#eee; }
   display:flex;
   gap:15px;
   flex-wrap:wrap;
+  margin-bottom:10px;
 }
 
 .card {
   background:#fafafa;
   padding:10px;
   border-radius:6px;
-  min-width:220px;
+  min-width:200px;
 }
 
 .alerta {
@@ -61,7 +63,7 @@ th { background:#eee; }
   border:1px solid #ffeeba;
   padding:12px;
   border-radius:6px;
-  margin-bottom:15px;
+  margin-bottom:10px;
   color:#856404;
 }
 </style>
@@ -76,13 +78,14 @@ th { background:#eee; }
     Lote:
     <select id="loteSelecionado"></select>
   </label>
-
+  <br>
   <button onclick="gerarRelatorio()">Gerar Relatório</button>
-  <button onclick="exportarExcelLote()">📊 Exportar Lote</button>
-  <button onclick="exportarExcelTodos()">📦 Exportar Todos</button>
+  <button onclick="exportarExcelTodos()">📊 Exportar Excel (Desktop)</button>
+  <button onclick="exportarCSVTodos()">📄 Exportar CSV (Celular)</button>
 </div>
 
 <div id="mensagem" class="alerta" style="display:none"></div>
+
 <div id="resumo" class="resumo"></div>
 
 <table>
@@ -99,8 +102,8 @@ th { background:#eee; }
 <tbody id="tabela"></tbody>
 </table>
 
-<!-- LIB EXCEL (OBRIGATÓRIA) -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- LIB EXCEL -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
 /* =====================
@@ -124,10 +127,10 @@ const mensagem = document.getElementById('mensagem');
   historicoExpedidos.forEach(h => set.add(h.lote));
 
   select.innerHTML = '<option value="">Selecione</option>';
-  set.forEach(lote => {
+  set.forEach(l => {
     const opt = document.createElement('option');
-    opt.value = lote;
-    opt.textContent = lote;
+    opt.value = l;
+    opt.textContent = l;
     select.appendChild(opt);
   });
 })();
@@ -142,6 +145,7 @@ function gerarRelatorio() {
   tabela.innerHTML = '';
   resumo.innerHTML = '';
   mensagem.style.display = 'none';
+  mensagem.innerHTML = '';
 
   let total = 0;
   let expedidos = 0;
@@ -163,22 +167,28 @@ function gerarRelatorio() {
       tabela.innerHTML += `
         <tr>
           <td class="expedido">Expedida</td>
-          <td>-</td>
-          <td>-</td>
-          <td>-</td>
+          <td>-</td><td>-</td><td>-</td>
           <td>${d.rz}</td>
           <td>${d.volume || '-'}</td>
-        </tr>
-      `;
+        </tr>`;
     });
+
+    if (h.expedidos < h.totalOriginal) {
+      mensagem.style.display = 'block';
+      mensagem.innerHTML += `
+        ⚠️ Expedição parcial do lote <strong>${lote}</strong><br>
+        Total: ${h.totalOriginal} | Expedidas: ${h.expedidos}<br><br>
+      `;
+    }
   });
 
-  // ALOCADAS
+  // ALOCADAS (NÃO EXPEDIDAS)
   mapa.forEach(area => {
     area.ruas.forEach(rua => {
       rua.posicoes.forEach((pos, i) => {
         if (pos?.lote !== lote) return;
         alocados++;
+
         tabela.innerHTML += `
           <tr>
             <td class="ativo">Alocada</td>
@@ -187,85 +197,31 @@ function gerarRelatorio() {
             <td>${i + 1}</td>
             <td>${pos.rz}</td>
             <td>${pos.volume || '-'}</td>
-          </tr>
-        `;
+          </tr>`;
       });
     });
   });
 
   const naoAlocadas = Math.max(total - expedidos - alocados, 0);
 
-  // MENSAGEM EXPEDIÇÃO PARCIAL
-  if (expedidos > 0 && (alocados > 0 || naoAlocadas > 0)) {
+  if (naoAlocadas > 0) {
     mensagem.style.display = 'block';
-    mensagem.innerHTML = `
-      ⚠️ <strong>Expedição parcial</strong><br>
-      Total do lote: ${total}<br>
-      Expedidas: ${expedidos}<br>
-      Alocadas: ${alocados}<br>
-      Não alocadas (sem RZ e volume): ${naoAlocadas}
+    mensagem.innerHTML += `
+      ℹ️ ${naoAlocadas} gaylords não foram alocadas
+      (sem RZ e sem Volume)
     `;
   }
 
   resumo.innerHTML = `
-    <div class="card">📦 Total: <strong>${total}</strong></div>
-    <div class="card">🚚 Expedidas: <strong>${expedidos}</strong></div>
-    <div class="card">📍 Alocadas: <strong>${alocados}</strong></div>
-    <div class="card">❗ Não alocadas: <strong>${naoAlocadas}</strong></div>
+    <div class="card">Total do lote: <strong>${total}</strong></div>
+    <div class="card">Expedidas: <strong>${expedidos}</strong></div>
+    <div class="card">Alocadas: <strong>${alocados}</strong></div>
+    <div class="card">Não alocadas: <strong>${naoAlocadas}</strong></div>
   `;
 }
 
 /* =====================
-   EXPORTAR EXCEL – LOTE
-===================== */
-function exportarExcelLote() {
-  const lote = select.value;
-  if (!lote) return alert('Selecione um lote');
-
-  const wb = XLSX.utils.book_new();
-  const linhas = [];
-
-  historicoExpedidos
-    .filter(h => h.lote === lote)
-    .forEach(h =>
-      h.detalhes.forEach(d =>
-        linhas.push({
-          Status: 'Expedida',
-          Área: '',
-          Rua: '',
-          Endereço: '',
-          RZ: d.rz,
-          Volume: d.volume || ''
-        })
-      )
-    );
-
-  mapa.forEach(area =>
-    area.ruas.forEach(rua =>
-      rua.posicoes.forEach((pos, i) => {
-        if (pos?.lote === lote) {
-          linhas.push({
-            Status: 'Alocada',
-            Área: area.nome,
-            Rua: rua.nome,
-            Endereço: i + 1,
-            RZ: pos.rz,
-            Volume: pos.volume || ''
-          });
-        }
-      })
-    )
-  );
-
-  if (linhas.length === 0) return alert('Nada para exportar');
-
-  const ws = XLSX.utils.json_to_sheet(linhas);
-  XLSX.utils.book_append_sheet(wb, ws, `Lote_${lote}`.substring(0, 31));
-  XLSX.writeFile(wb, `relatorio_lote_${lote}.xlsx`);
-}
-
-/* =====================
-   EXPORTAR EXCEL – TODOS
+   EXPORTAR EXCEL (DESKTOP)
 ===================== */
 function exportarExcelTodos() {
   const wb = XLSX.utils.book_new();
@@ -275,47 +231,82 @@ function exportarExcelTodos() {
   historicoExpedidos.forEach(h => set.add(h.lote));
 
   set.forEach(lote => {
-    const linhas = [];
+    let linhas = [];
 
     historicoExpedidos
       .filter(h => h.lote === lote)
-      .forEach(h =>
-        h.detalhes.forEach(d =>
+      .forEach(h => {
+        h.detalhes.forEach(d => {
           linhas.push({
             Status: 'Expedida',
-            Área: '',
-            Rua: '',
-            Endereço: '',
             RZ: d.rz,
             Volume: d.volume || ''
-          })
-        )
-      );
+          });
+        });
+      });
 
-    mapa.forEach(area =>
-      area.ruas.forEach(rua =>
-        rua.posicoes.forEach((pos, i) => {
+    mapa.forEach(area => {
+      area.ruas.forEach(rua => {
+        rua.posicoes.forEach(pos => {
           if (pos?.lote === lote) {
             linhas.push({
               Status: 'Alocada',
-              Área: area.nome,
-              Rua: rua.nome,
-              Endereço: i + 1,
               RZ: pos.rz,
               Volume: pos.volume || ''
             });
           }
-        })
-      )
-    );
+        });
+      });
+    });
 
     if (linhas.length > 0) {
       const ws = XLSX.utils.json_to_sheet(linhas);
-      XLSX.utils.book_append_sheet(wb, ws, `Lote_${lote}`.substring(0, 31));
+      XLSX.utils.book_append_sheet(
+        wb,
+        ws,
+        `Lote_${lote}`.substring(0, 31)
+      );
     }
   });
 
-  XLSX.writeFile(wb, 'relatorio_completo_gaylords.xlsx');
+  XLSX.writeFile(wb, 'relatorio_gaylords.xlsx');
+}
+
+/* =====================
+   EXPORTAR CSV (CELULAR)
+===================== */
+function exportarCSVTodos() {
+  let csv = 'Lote,Status,RZ,Volume\n';
+
+  const set = new Set();
+  Object.keys(lotes).forEach(l => set.add(l));
+  historicoExpedidos.forEach(h => set.add(h.lote));
+
+  set.forEach(lote => {
+    historicoExpedidos
+      .filter(h => h.lote === lote)
+      .forEach(h => {
+        h.detalhes.forEach(d => {
+          csv += `${lote},Expedida,${d.rz},${d.volume || ''}\n`;
+        });
+      });
+
+    mapa.forEach(area => {
+      area.ruas.forEach(rua => {
+        rua.posicoes.forEach(pos => {
+          if (pos?.lote === lote) {
+            csv += `${lote},Alocada,${pos.rz},${pos.volume || ''}\n`;
+          }
+        });
+      });
+    });
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'relatorio_gaylords.csv';
+  link.click();
 }
 </script>
 
