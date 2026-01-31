@@ -316,15 +316,15 @@ function expedirLote(nome) {
       ? `Expedido parcialmente: ${alocados.length} de ${totalOriginal}`
       : 'Expedido completo';
 
-  historicoExpedidos.push({
-    lote: nome,
-    expedidos: alocados.length,
-    totalOriginal,
-    observacao,
-    data: new Date().toLocaleDateString(),
-    hora: new Date().toLocaleTimeString(),
-    detalhes: alocados
-  });
+historicoExpedidos.push({
+  lote: nome,
+  expedidos: alocados.length,   // quantidade expedida nessa ação
+  totalOriginal,                // total criado do lote
+  observacao,                   // texto opcional
+  data: new Date().toLocaleDateString(),
+  hora: new Date().toLocaleTimeString(),
+  detalhes: alocados            // [{rz, volume, area, rua, posicao}]
+});
 
   lotesCadastrados[nome].total -= alocados.length;
   if (lotesCadastrados[nome].total <= 0) delete lotesCadastrados[nome];
