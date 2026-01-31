@@ -112,7 +112,7 @@ const historicoExpedidos = JSON.parse(localStorage.getItem('historicoExpedidos')
 const select = document.getElementById('loteSelecionado');
 const tabela = document.getElementById('tabela');
 const resumo = document.getElementById('resumo');
-const mensagemParcial = document.getElementById('mensagemParcial');
+const mensagem = document.getElementById('mensagem');
 
 /* =====================
    CARREGAR LOTES
@@ -140,13 +140,15 @@ function gerarRelatorio() {
 
   tabela.innerHTML = '';
   resumo.innerHTML = '';
-  mensagemParcial.innerHTML = '';
+  mensagem.innerHTML = '';
+  mensagem.style.display = 'none';
 
   let total = 0;
   let expedidos = 0;
   let alocados = 0;
 
   const historico = historicoExpedidos.filter(h => h.lote === lote);
+
   if (historico.length > 0) total = historico[0].totalOriginal;
   else if (lotes[lote]) total = lotes[lote].total;
 
@@ -165,16 +167,15 @@ function gerarRelatorio() {
     });
 
     if (h.expedidos < h.totalOriginal) {
-      mensagemParcial.innerHTML += `
-        <div class="alerta">
-          ⚠️ Expedição parcial<br>
-          Total: ${h.totalOriginal}<br>
-          Expedidas: ${h.expedidos}
-        </div>`;
+      mensagem.style.display = 'block';
+      mensagem.innerHTML += `
+        ⚠️ Expedição parcial do lote <strong>${lote}</strong><br>
+        Total: ${h.totalOriginal} | Expedidas: ${h.expedidos}<br><br>
+      `;
     }
   });
 
-  // ALOCADAS
+  // ALOCADAS (NÃO EXPEDIDAS)
   mapa.forEach(area => {
     area.ruas.forEach(rua => {
       rua.posicoes.forEach((pos, i) => {
@@ -193,17 +194,19 @@ function gerarRelatorio() {
     });
   });
 
+  // NÃO ALOCADAS
   const naoAlocadas = Math.max(total - expedidos - alocados, 0);
 
   if (naoAlocadas > 0) {
-    mensagemParcial.innerHTML += `
-      <div class="alerta">
-        ℹ️ ${naoAlocadas} gaylords não alocadas (sem RZ e volume)
-      </div>`;
+    mensagem.style.display = 'block';
+    mensagem.innerHTML += `
+      ℹ️ ${naoAlocadas} gaylords do lote <strong>${lote}</strong>
+      não foram alocadas para expedição e não possuem RZ nem volume.
+    `;
   }
 
   resumo.innerHTML = `
-    <div class="card">Total: ${total}</div>
+    <div class="card">Total criado: ${total}</div>
     <div class="card">Expedidas: ${expedidos}</div>
     <div class="card">Alocadas: ${alocados}</div>
     <div class="card">Não alocadas: ${naoAlocadas}</div>
@@ -211,7 +214,7 @@ function gerarRelatorio() {
 }
 
 /* =====================
-   EXPORTAR EXCEL (TODOS)
+   EXPORTAR TODOS OS LOTES
 ===================== */
 function exportarExcelTodos() {
   const wb = XLSX.utils.book_new();
@@ -221,7 +224,7 @@ function exportarExcelTodos() {
   historicoExpedidos.forEach(h => set.add(h.lote));
 
   set.forEach(lote => {
-    let linhas = [];
+    const linhas = [];
 
     historicoExpedidos
       .filter(h => h.lote === lote)
@@ -229,20 +232,26 @@ function exportarExcelTodos() {
         h.detalhes.forEach(d => {
           linhas.push({
             Status: 'Expedida',
+            Área: '-',
+            Rua: '-',
+            Endereço: '-',
             RZ: d.rz,
-            Volume: d.volume || ''
+            Volume: d.volume || '-'
           });
         });
       });
 
     mapa.forEach(area => {
       area.ruas.forEach(rua => {
-        rua.posicoes.forEach(pos => {
+        rua.posicoes.forEach((pos, i) => {
           if (pos?.lote === lote) {
             linhas.push({
               Status: 'Alocada',
+              Área: area.nome,
+              Rua: rua.nome,
+              Endereço: i + 1,
               RZ: pos.rz,
-              Volume: pos.volume || ''
+              Volume: pos.volume || '-'
             });
           }
         });
@@ -251,11 +260,15 @@ function exportarExcelTodos() {
 
     if (linhas.length > 0) {
       const ws = XLSX.utils.json_to_sheet(linhas);
-      XLSX.utils.book_append_sheet(wb, ws, `Lote_${lote}`.substring(0, 31));
+      XLSX.utils.book_append_sheet(
+        wb,
+        ws,
+        `Lote_${lote}`.substring(0, 31)
+      );
     }
   });
 
-  XLSX.writeFile(wb, 'relatorio_lotes.xlsx');
+  XLSX.writeFile(wb, 'relatorio_completo_lotes.xlsx');
 }
 </script>
 </body>
